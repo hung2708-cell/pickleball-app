@@ -106,61 +106,104 @@ PB.referee = {
     this.renderConsole();
   },
 
-  // Vẽ sơ đồ sân Pickleball 2D chuẩn tỉ lệ USAP (44ft x 20ft) bằng SVG tự co giãn mọi thiết bị
-  _renderCourtDiagram({ leftSide, rightSide, leftName, rightName, serverSide, scoreA, scoreB, serverNum }) {
+  // Tách tên 2 VĐV từ mảng hoặc chuỗi "Tên 1 / Tên 2"
+  _splitTwoPlayers(playersArr, fallbackTeamName) {
+    if (Array.isArray(playersArr)) {
+      const clean = playersArr.map((x) => (x || "").trim()).filter(Boolean);
+      if (clean.length >= 2) return [clean[0], clean[1]];
+      if (clean.length === 1) return [clean[0], "Tay 2"];
+    }
+    if (fallbackTeamName) {
+      const parts = String(fallbackTeamName).split(/[\/,&\-]+/).map((s) => s.trim()).filter(Boolean);
+      if (parts.length >= 2) return [parts[0], parts[1]];
+      if (parts.length === 1) return [parts[0] + " 1", parts[0] + " 2"];
+    }
+    return ["VĐV 1", "VĐV 2"];
+  },
+
+  // Vẽ sơ đồ sân 2D chuẩn USAP (44ft x 20ft) với 4 chấm tròn phát sáng, tên VĐV & Tay 1 / Tay 2
+  _renderCourtDiagram({ leftSide, rightSide, leftName, rightName, leftPlayers, rightPlayers, serverSide, scoreA, scoreB, serverNum }) {
+    const scoreLeft = leftSide === "A" ? scoreA : scoreB;
+    const scoreRight = rightSide === "A" ? scoreA : scoreB;
     const serverScore = serverSide === "A" ? scoreA : scoreB;
-    const isEven = (serverScore % 2) === 0;
+    const isServerEven = (serverScore % 2) === 0;
     const serverOnLeft = (serverSide === leftSide);
 
-    // Tọa độ chuẩn trong viewBox="0 0 480 230" (vùng sân 440x200 đặt tại x=20, y=15)
-    // Tỉ lệ 10px = 1ft:
-    // - Nửa sân trái: Ô giao bóng x=20..170 (150px = 15ft), Kitchen trái x=170..240 (70px = 7ft)
-    // - Lưới ở x=240
-    // - Nửa sân phải: Kitchen phải x=240..310 (70px = 7ft), Ô giao bóng x=310..460 (150px = 15ft)
-    // - Chiều dọc: y=15..115 (100px = 10ft ô trên), y=115..215 (100px = 10ft ô dưới)
-    let lTop = "", lBot = "", rTop = "", rBot = "";
+    const pLeft = this._splitTwoPlayers(leftPlayers, leftName);   // [Tay 1, Tay 2]
+    const pRight = this._splitTwoPlayers(rightPlayers, rightName); // [Tay 1, Tay 2]
+
+    // Vị trí Tay 1 / Tay 2 trên sân dựa theo điểm của từng đội (không ghi chữ chẵn/lẻ):
+    // - Nửa sân TRÁI (nhìn sang phải): ô DƯỚI là ô phải, ô TRÊN là ô trái
+    //   Điểm chẵn -> Tay 1 ở DƯỚI, Tay 2 ở TRÊN; Điểm lẻ -> Tay 1 ở TRÊN, Tay 2 ở DƯỚI
+    const leftBotPlayer = (scoreLeft % 2 === 0) ? { name: pLeft[0], hand: "Tay 1" } : { name: pLeft[1], hand: "Tay 2" };
+    const leftTopPlayer = (scoreLeft % 2 === 0) ? { name: pLeft[1], hand: "Tay 2" } : { name: pLeft[0], hand: "Tay 1" };
+
+    // - Nửa sân PHẢI (nhìn sang trái): ô TRÊN là ô phải, ô DƯỚI là ô trái
+    //   Điểm chẵn -> Tay 1 ở TRÊN, Tay 2 ở DƯỚI; Điểm lẻ -> Tay 1 ở DƯỚI, Tay 2 ở TRÊN
+    const rightTopPlayer = (scoreRight % 2 === 0) ? { name: pRight[0], hand: "Tay 1" } : { name: pRight[1], hand: "Tay 2" };
+    const rightBotPlayer = (scoreRight % 2 === 0) ? { name: pRight[1], hand: "Tay 2" } : { name: pRight[0], hand: "Tay 1" };
+
+    // Xác định ô Phát bóng và ô Đỡ bóng (chéo sân)
+    let lTopState = "", lBotState = "", rTopState = "", rBotState = "";
     let arrow = { x1: 0, y1: 0, x2: 0, y2: 0 };
 
     if (serverOnLeft) {
-      if (isEven) {
-        lBot = "serve"; rTop = "receive";
-        arrow = { x1: 115, y1: 165, x2: 365, y2: 65 };
+      if (isServerEven) {
+        lBotState = "serve"; rTopState = "receive";
+        arrow = { x1: 95, y1: 162, x2: 385, y2: 62 };
       } else {
-        lTop = "serve"; rBot = "receive";
-        arrow = { x1: 115, y1: 65, x2: 365, y2: 165 };
+        lTopState = "serve"; rBotState = "receive";
+        arrow = { x1: 95, y1: 62, x2: 385, y2: 162 };
       }
     } else {
-      if (isEven) {
-        rTop = "serve"; lBot = "receive";
-        arrow = { x1: 365, y1: 65, x2: 115, y2: 165 };
+      if (isServerEven) {
+        rTopState = "serve"; lBotState = "receive";
+        arrow = { x1: 385, y1: 62, x2: 95, y2: 162 };
       } else {
-        rBot = "serve"; lTop = "receive";
-        arrow = { x1: 365, y1: 165, x2: 115, y2: 65 };
+        rBotState = "serve"; lTopState = "receive";
+        arrow = { x1: 385, y1: 162, x2: 95, y2: 62 };
       }
     }
 
-    const renderBox = (x, y, state, posLabel) => {
-      const cls = state === "serve" ? "svg-serve-box" : state === "receive" ? "svg-receive-box" : "";
-      const fill = state ? "" : "#1d4ed8";
+    const shortName = (n) => (n && n.length > 11 ? n.slice(0, 10) + "…" : n);
+
+    const renderPlayerBox = (x, y, state, player) => {
       const cx = x + 75;
-      const cy = y + 50;
-      let inner = `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="rgba(255,255,255,0.65)" font-size="11" font-weight="700">${posLabel}</text>`;
+      const cy = y + 46;
+      const boxFill = state === "serve" ? "rgba(234, 88, 12, 0.25)" : state === "receive" ? "rgba(5, 150, 105, 0.25)" : "#1d4ed8";
+
+      let dotMarkup = `
+        <circle cx="${cx}" cy="${cy - 6}" r="9" fill="#e2e8f0" stroke="#0f172a" stroke-width="2" />
+      `;
+      let statusBadge = "";
+
       if (state === "serve") {
-        inner = `
-          <rect x="${cx - 46}" y="${cy - 22}" width="92" height="20" rx="10" fill="rgba(0,0,0,0.48)" />
-          <text x="${cx}" y="${cy - 8}" text-anchor="middle" fill="#fde047" font-size="10.5" font-weight="800">PHÁT BÓNG</text>
-          <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700">${posLabel}${serverNum ? ` • Lượt ${serverNum}` : ""}</text>
+        dotMarkup = `
+          <circle cx="${cx}" cy="${cy - 6}" r="14" class="player-ring-serve" />
+          <circle cx="${cx}" cy="${cy - 6}" r="11" fill="#f97316" stroke="#fde047" stroke-width="2.5" class="player-dot-serve" />
+        `;
+        statusBadge = `
+          <rect x="${cx - 46}" y="${y + 4}" width="92" height="17" rx="8.5" fill="rgba(0,0,0,0.62)" />
+          <text x="${cx}" y="${y + 15.5}" text-anchor="middle" fill="#fde047" font-size="9.5" font-weight="800">PHÁT${serverNum ? ` • TAY ${serverNum}` : ""}</text>
         `;
       } else if (state === "receive") {
-        inner = `
-          <rect x="${cx - 42}" y="${cy - 22}" width="84" height="20" rx="10" fill="rgba(0,0,0,0.48)" />
-          <text x="${cx}" y="${cy - 8}" text-anchor="middle" fill="#6ee7b7" font-size="10.5" font-weight="800">ĐỠ BÓNG</text>
-          <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700">${posLabel}</text>
+        dotMarkup = `
+          <circle cx="${cx}" cy="${cy - 6}" r="14" class="player-ring-receive" />
+          <circle cx="${cx}" cy="${cy - 6}" r="11" fill="#10b981" stroke="#6ee7b7" stroke-width="2.5" class="player-dot-receive" />
+        `;
+        statusBadge = `
+          <rect x="${cx - 38}" y="${y + 4}" width="76" height="17" rx="8.5" fill="rgba(0,0,0,0.62)" />
+          <text x="${cx}" y="${y + 15.5}" text-anchor="middle" fill="#6ee7b7" font-size="9.5" font-weight="800">ĐỠ BÓNG</text>
         `;
       }
+
       return `
-        <rect x="${x}" y="${y}" width="150" height="100" fill="${fill}" class="${cls}" stroke="#ffffff" stroke-width="2" />
-        ${inner}
+        <rect x="${x}" y="${y}" width="150" height="100" fill="${boxFill}" stroke="#ffffff" stroke-width="2" />
+        ${statusBadge}
+        ${dotMarkup}
+        <rect x="${cx - 56}" y="${cy + 11}" width="112" height="20" rx="6" fill="rgba(15,23,42,0.72)" />
+        <text x="${cx}" y="${cy + 24.5}" text-anchor="middle" fill="#ffffff" font-size="10.5" font-weight="800">${PB.app.escape(shortName(player.name))}</text>
+        <text x="${cx}" y="${cy + 42}" text-anchor="middle" fill="#cbd5e1" font-size="9.5" font-weight="700">${player.hand}</text>
       `;
     };
 
@@ -177,36 +220,36 @@ PB.referee = {
                 <polygon points="0 0, 8 3.5, 0 7" fill="#fde047" />
               </marker>
             </defs>
-            <!-- Vùng ngoài sân (Out-of-bounds apron) -->
             <rect x="0" y="0" width="480" height="230" rx="12" fill="#0f766e" opacity="0.35" />
 
-            <!-- 4 ô giao bóng chuẩn 15x10ft -->
-            ${renderBox(20, 15, lTop, "Ô Trái (Lẻ)")}
-            ${renderBox(20, 115, lBot, "Ô Phải (Chẵn)")}
-            ${renderBox(310, 15, rTop, "Ô Phải (Chẵn)")}
-            ${renderBox(310, 115, rBot, "Ô Trái (Lẻ)")}
+            <!-- Nền sân xanh dương -->
+            <rect x="20" y="15" width="440" height="200" fill="#1d4ed8" />
 
-            <!-- 2 vùng Non-Volley Zone (Kitchen 7ft) -->
+            <!-- 4 ô VĐV kèm chấm tròn phát sáng, tên & Tay 1 / Tay 2 -->
+            ${renderPlayerBox(20, 15, lTopState, leftTopPlayer)}
+            ${renderPlayerBox(20, 115, lBotState, leftBotPlayer)}
+            ${renderPlayerBox(310, 15, rTopState, rightTopPlayer)}
+            ${renderPlayerBox(310, 115, rBotState, rightBotPlayer)}
+
+            <!-- 2 vùng Kitchen -->
             <rect x="170" y="15" width="70" height="200" fill="#0284c7" stroke="#ffffff" stroke-width="2" />
             <rect x="240" y="15" width="70" height="200" fill="#0284c7" stroke="#ffffff" stroke-width="2" />
             <text x="205" y="119" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="11" font-weight="800" transform="rotate(-90 205 115)">KITCHEN</text>
             <text x="275" y="119" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="11" font-weight="800" transform="rotate(90 275 115)">KITCHEN</text>
 
-            <!-- Đường viền ngoài sân đậm -->
+            <!-- Đường viền ngoài sân & Lưới -->
             <rect x="20" y="15" width="440" height="200" fill="none" stroke="#ffffff" stroke-width="3" />
-
-            <!-- Lưới giữa sân + 2 cột lưới -->
             <line x1="240" y1="7" x2="240" y2="223" stroke="#f8fafc" stroke-width="4" stroke-dasharray="6,4" />
             <circle cx="240" cy="7" r="4.5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5" />
             <circle cx="240" cy="223" r="4.5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5" />
 
-            <!-- Đường bay giao bóng chéo sân -->
-            <line x1="${arrow.x1}" y1="${arrow.y1}" x2="${arrow.x2}" y2="${arrow.y2}" stroke="#fde047" stroke-width="2.5" stroke-dasharray="7,5" opacity="0.88" marker-end="url(#serveArrowHead)" />
+            <!-- Mũi tên giao bóng chéo sân -->
+            <line x1="${arrow.x1}" y1="${arrow.y1}" x2="${arrow.x2}" y2="${arrow.y2}" stroke="#fde047" stroke-width="2.5" stroke-dasharray="6,5" opacity="0.9" marker-end="url(#serveArrowHead)" />
           </svg>
         </div>
         <div class="pb-court-2d-legend">
-          <span><i class="pb-legend-dot" style="background:#ea580c;"></i>Ô Phát bóng (Chẵn: Phải • Lẻ: Trái)</span>
-          <span><i class="pb-legend-dot" style="background:#059669;"></i>Ô Đỡ bóng (Chéo sân)</span>
+          <span><i class="pb-legend-dot" style="background:#f97316;box-shadow:0 0 6px #fde047;"></i>VĐV Phát bóng</span>
+          <span><i class="pb-legend-dot" style="background:#10b981;box-shadow:0 0 6px #6ee7b7;"></i>VĐV Đỡ bóng</span>
         </div>
       </div>
     `;
@@ -706,32 +749,44 @@ PB.referee = {
     const callout = `${srvScore} - ${rcvScore} - ${sm.serverNum}`;
     const leftSide = sm.swapped ? "B" : "A";
     const rightSide = sm.swapped ? "A" : "B";
+    if (!sm.timeouts) sm.timeouts = { A: 2, B: 2 };
 
     const renderSide = (sideKey) => {
       const isA = sideKey === "A";
       const pairName = (isA ? sm.playersA : sm.playersB).filter(Boolean).join(" / ") || PB.state.getTeamName(isA ? tie.teamA : tie.teamB);
       const score = isA ? sm.scoreA : sm.scoreB;
       const isServing = sm.server === sideKey;
+      const toLeft = sm.timeouts[sideKey] ?? 2;
       return `
         <div class="ref-side ${isA ? "side-a" : "side-b"} ${isServing ? "is-serving" : ""}">
           <div class="ref-side-name">${PB.app.escape(pairName)}</div>
-          <div>${isServing ? `<span class="ref-serve-badge">GIAO BÓNG (Lượt ${sm.serverNum})</span>` : `<span class="muted">Đỡ giao bóng</span>`}</div>
+          <div>${isServing ? `<span class="ref-serve-badge">GIAO BÓNG (Tay ${sm.serverNum})</span>` : `<span class="muted">Đỡ giao bóng</span>`}</div>
           <div class="ref-big-score">${score}</div>
           ${sm.status === "finished" ? `<div class="badge badge-done">Đã chốt</div>` : (
             isServing
               ? `<button class="ref-action-btn ${isA ? "btn-point-a" : "btn-point-b"}" onclick="PB.referee.teamSubPoint('${sideKey}')">+1 ĐIỂM</button>`
               : `<button class="ref-action-btn btn-sideout" onclick="PB.referee.teamSubSideOut()">ĐỔI GIAO / LỖI</button>`
           )}
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.teamSubTimeout('${sideKey}')" ${toLeft <= 0 || sm.status === "finished" ? "disabled" : ""}>Timeout (${toLeft})</button>
+            <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.teamSubMedicalSub('${sideKey}')" ${sm.status === "finished" ? "disabled" : ""}>Thay Y tế</button>
+          </div>
         </div>
       `;
     };
 
+    const all4Done = tie.subMatches.every((s) => s.status === "finished");
+    const canDB = isKO && all4Done && tie.scoreA === 2 && tie.scoreB === 2;
+
     el.innerHTML = `
       <div class="ref-console">
         <div class="ref-topbar">
-          <button class="btn btn-sm btn-secondary" onclick="PB.referee.backToTeamHub()">← Về 4 trận</button>
-          <strong>${sm.label}</strong>
-          <span class="muted">${isKO ? "15đ (14-14 cách 2, max 18)" : "Chạm 15đ"}</span>
+          <button class="btn btn-sm btn-secondary" onclick="PB.referee.backToTeamHub()">← 4 trận</button>
+          <select class="ref-sub-select" onchange="PB.referee.switchTeamSub(this.value)">
+            ${tie.subMatches.map((item, i) => `<option value="${i}" ${i === subIdx ? "selected" : ""}>${item.label}</option>`).join("")}
+            ${canDB ? `<option value="db">Trận Đơn (Hòa 2-2)</option>` : ""}
+          </select>
+          <span class="muted">${isKO ? "15đ (max 18)" : "Chạm 15đ"}</span>
         </div>
 
         <div class="callout-banner">
@@ -741,28 +796,81 @@ PB.referee = {
 
         ${sm.switchedAlerted && (sm.scoreA === 8 || sm.scoreB === 8) ? `<div class="switch-alert">CHẠM ĐIỂM 8 — YÊU CẦU HAI ĐỘI ĐỔI SÂN!</div>` : ""}
 
-        ${this._renderCourtDiagram({
-          leftSide, rightSide,
-          leftName: (leftSide === "A" ? sm.playersA : sm.playersB).filter(Boolean).join(" / ") || PB.state.getTeamName(leftSide === "A" ? tie.teamA : tie.teamB),
-          rightName: (rightSide === "A" ? sm.playersA : sm.playersB).filter(Boolean).join(" / ") || PB.state.getTeamName(rightSide === "A" ? tie.teamA : tie.teamB),
-          serverSide: sm.server,
-          scoreA: sm.scoreA, scoreB: sm.scoreB,
-          serverNum: sm.serverNum
-        })}
-        <div class="ref-courts-split">
-          ${renderSide(leftSide)}
-          ${renderSide(rightSide)}
-        </div>
+        ${this.timerSeconds > 0 ? `
+          <div class="timeout-banner">
+            <span>⏱ ${PB.app.escape(this.timerLabel)}: <strong>${this._fmtSec(this.timerSeconds)}</strong></span>
+            <button class="btn btn-sm btn-danger" onclick="PB.referee.stopTimer()">Dừng</button>
+          </div>
+        ` : ""}
 
-        <div class="ref-tools-grid">
-          <button class="btn btn-warning" onclick="PB.referee.teamSubSideOut()" ${sm.status === "finished" ? "disabled" : ""}>Lỗi giao bóng</button>
-          <button class="btn btn-secondary" onclick="PB.referee.teamSubUndo()" ${!sm.history?.length ? "disabled" : ""}>Hoàn tác</button>
-          <button class="btn btn-secondary" onclick="PB.referee.openTossModal()">Bốc thăm</button>
-          <button class="btn btn-secondary" onclick="PB.referee.teamSubSwap()">Đảo bên sân</button>
-          <button class="btn btn-success" onclick="PB.referee.teamSubFinishManual()" ${sm.status === "finished" ? "disabled" : ""}>Chốt trận</button>
+        <div class="ref-body-layout">
+          <div>
+            ${this._renderCourtDiagram({
+              leftSide, rightSide,
+              leftName: (leftSide === "A" ? sm.playersA : sm.playersB).filter(Boolean).join(" / ") || PB.state.getTeamName(leftSide === "A" ? tie.teamA : tie.teamB),
+              rightName: (rightSide === "A" ? sm.playersA : sm.playersB).filter(Boolean).join(" / ") || PB.state.getTeamName(rightSide === "A" ? tie.teamA : tie.teamB),
+              leftPlayers: leftSide === "A" ? sm.playersA : sm.playersB,
+              rightPlayers: rightSide === "A" ? sm.playersA : sm.playersB,
+              serverSide: sm.server,
+              scoreA: sm.scoreA, scoreB: sm.scoreB,
+              serverNum: sm.serverNum
+            })}
+          </div>
+          <div>
+            <div class="ref-courts-split">
+              ${renderSide(leftSide)}
+              ${renderSide(rightSide)}
+            </div>
+            <div class="ref-tools-grid">
+              <button class="btn btn-warning" onclick="PB.referee.teamSubSideOut()" ${sm.status === "finished" ? "disabled" : ""}>Lỗi giao bóng</button>
+              <button class="btn btn-secondary" onclick="PB.referee.teamSubUndo()" ${!sm.history?.length ? "disabled" : ""}>Hoàn tác</button>
+              <button class="btn btn-secondary" onclick="PB.referee.openTossModal()">Bốc thăm</button>
+              <button class="btn btn-secondary" onclick="PB.referee.teamSubSwap()">Đảo bên sân</button>
+              <button class="btn btn-secondary" onclick="PB.referee.startMedicalTimer()">Y tế (15p)</button>
+              <button class="btn btn-success" onclick="PB.referee.teamSubFinishManual()" ${sm.status === "finished" ? "disabled" : ""}>Chốt trận</button>
+            </div>
+          </div>
         </div>
       </div>
     `;
+  },
+
+  switchTeamSub(val) {
+    this.stopTimer();
+    this.activeSubIdx = (val === "db") ? "db" : Number(val);
+    this.renderConsole();
+  },
+
+  teamSubTimeout(side) {
+    const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+    const sm = tie?.subMatches?.[this.activeSubIdx];
+    if (!sm) return;
+    if (!sm.timeouts) sm.timeouts = { A: 2, B: 2 };
+    if (sm.timeouts[side] <= 0) return;
+    sm.timeouts[side] -= 1;
+    sm.logs.unshift(`[${PB.rules.nowTime()}] Đội ${side} xin Timeout (60s)`);
+    PB.state.save();
+    this.startTimer(60, `Timeout — Đội ${side}`);
+  },
+
+  async teamSubMedicalSub(side) {
+    const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+    const sm = tie?.subMatches?.[this.activeSubIdx];
+    if (!sm) return;
+    const key = side === "A" ? "playersA" : "playersB";
+    const curPair = (sm[key] || []).filter(Boolean).join(" / ");
+    const inp = await PB.ui.prompt(
+      `Thay VĐV chấn thương (Y tế) cho ${sm.label} — Đội ${side}.\nNhập tên 2 VĐV mới cách nhau dấu "/" (VD: Hùng / Nam):`,
+      curPair,
+      "Thay VĐV (Y tế)"
+    );
+    if (!inp) return;
+    const parts = inp.split("/").map((s) => s.trim()).filter(Boolean);
+    if (parts.length < 2) return PB.ui.alert("Vui lòng nhập đủ tên 2 VĐV cách nhau dấu /.");
+    sm[key] = [parts[0], parts[1]];
+    sm.logs.unshift(`[${PB.rules.nowTime()}] Thay VĐV (Y tế) Đội ${side}: ${parts[0]} / ${parts[1]}`);
+    PB.state.save();
+    PB.app.toast(`Đã thay VĐV (Y tế) cho Đội ${side}`);
   },
 
   teamSubPoint(side) {
@@ -938,7 +1046,7 @@ PB.referee = {
           <div class="ref-side-name">${PB.app.escape(name)}</div>
           <div>
             ${isServing
-              ? `<span class="ref-serve-badge">GIAO BÓNG ${settings.scoringMode === "sideout" ? "(Lượt " + m.serverNum + ")" : ""}</span>`
+              ? `<span class="ref-serve-badge">GIAO BÓNG ${settings.scoringMode === "sideout" ? "(Tay " + m.serverNum + ")" : ""}</span>`
               : `<span class="muted" style="font-size:0.78rem;">Đỡ giao bóng</span>`}
           </div>
           <div class="ref-big-score">${score}</div>
@@ -976,19 +1084,24 @@ PB.referee = {
             <button class="btn btn-sm btn-danger" onclick="PB.referee.stopTimer()">Dừng</button>
           </div>
         ` : ""}
-        ${this._renderCourtDiagram({
-          leftSide, rightSide,
-          leftName: PB.state.getTeamName(leftSide === "A" ? m.teamA : m.teamB),
-          rightName: PB.state.getTeamName(rightSide === "A" ? m.teamA : m.teamB),
-          serverSide: m.server,
-          scoreA: m.scoreA, scoreB: m.scoreB,
-          serverNum: settings.scoringMode === "sideout" ? m.serverNum : 0
-        })}
-        <div class="ref-courts-split">
-          ${renderSide(leftSide)}
-          ${renderSide(rightSide)}
-        </div>
-        <div class="ref-tools-grid">
+        <div class="ref-body-layout">
+          <div>
+            ${this._renderCourtDiagram({
+              leftSide, rightSide,
+              leftName: PB.state.getTeamName(leftSide === "A" ? m.teamA : m.teamB),
+              rightName: PB.state.getTeamName(rightSide === "A" ? m.teamA : m.teamB),
+              leftPlayers: null, rightPlayers: null,
+              serverSide: m.server,
+              scoreA: m.scoreA, scoreB: m.scoreB,
+              serverNum: settings.scoringMode === "sideout" ? m.serverNum : 0
+            })}
+          </div>
+          <div>
+            <div class="ref-courts-split">
+              ${renderSide(leftSide)}
+              ${renderSide(rightSide)}
+            </div>
+            <div class="ref-tools-grid">
           <button class="btn btn-warning" onclick="PB.referee.sideOut()">Lỗi giao bóng</button>
           <button class="btn btn-secondary" onclick="PB.referee.undo()" ${!m.history?.length ? "disabled" : ""}>Hoàn tác</button>
           <button class="btn btn-secondary" onclick="PB.referee.openTossModal()">Bốc thăm</button>
@@ -996,6 +1109,8 @@ PB.referee = {
           <button class="btn btn-secondary" onclick="PB.referee.startMedicalTimer()">Y tế (15p)</button>
           <button class="btn btn-secondary" onclick="PB.referee.walkoverPrompt()">Bỏ cuộc (WO)</button>
           <button class="btn btn-success" onclick="PB.referee.finishManual()">Chốt kết thúc</button>
+            </div>
+          </div>
         </div>
       </div>
     `;

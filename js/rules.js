@@ -13,6 +13,26 @@
 window.PB = window.PB || {};
 
 PB.rules = {
+
+  isTeamSubReached(tie, sm) {
+    if (!sm) return false;
+    if (sm.status === "finished") return true;
+    const isKnockout = tie.stage !== "group";
+    const maxS = Math.max(sm.scoreA, sm.scoreB);
+    const diff = Math.abs(sm.scoreA - sm.scoreB);
+    return !isKnockout ? (maxS >= 15) : ((maxS >= 15 && diff >= 2) || maxS >= 18);
+  },
+
+  isDoublesSetReached(m, settings) {
+    if (!m) return false;
+    if (m.status === "finished") return true;
+    const target = Number(settings.targetPoints) || 11;
+    const winByTwo = !!settings.winByTwo;
+    const maxS = Math.max(m.scoreA, m.scoreB);
+    const diff = Math.abs(m.scoreA - m.scoreB);
+    return maxS >= target && (!winByTwo || diff >= 2);
+  },
+
   nowTime() {
     return new Date().toTimeString().slice(0, 8);
   },
@@ -109,7 +129,7 @@ PB.rules = {
   // Điểm số và luật kết thúc cho từng trận con Đồng đội
   addTeamSubPoint(tie, subIdx, side) {
     const sm = tie.subMatches[subIdx];
-    if (!sm || sm.status === "finished") return { event: "locked" };
+    if (!sm || sm.status === "finished" || this.isTeamSubReached(tie, sm)) return { event: "locked" };
     if (tie.status === "pending") tie.status = "live";
     if (sm.status === "pending") sm.status = "live";
 
@@ -340,7 +360,7 @@ PB.rules = {
   },
 
   addPoint(m, team, settings) {
-    if (m.status === "finished") return { event: "locked" };
+    if (m.status === "finished" || this.isDoublesSetReached(m, settings)) return { event: "locked" };
     if (m.status === "pending") this.startMatch(m);
     if (settings.scoringMode === "sideout" && m.server !== team) return { event: "not_serving" };
 
@@ -369,6 +389,7 @@ PB.rules = {
   },
 
   useTimeout(m, team) {
+    if (!m.timeouts) m.timeouts = { A: 2, B: 2 };
     if (m.timeouts[team] <= 0) return false;
     const name = PB.state.getTeamName(team === "A" ? m.teamA : m.teamB);
     this.pushHistory(m, `${name} xin hội ý (Timeout 1 phút)`);

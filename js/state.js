@@ -114,10 +114,15 @@ PB.state = {
     if (!this.data) return;
     // Cập nhật giao diện tức thì (Optimistic UI) để trọng tài bấm nhạy 0ms
     this.notify();
-    if (this.isCloud && this.dbRef) {
-      this.dbRef.set(this.data);
-    } else {
-      localStorage.setItem(PB.config.localStorageKey, JSON.stringify(this.data));
+    try {
+      const cleanData = JSON.parse(JSON.stringify(this.data));
+      if (this.isCloud && this.dbRef) {
+        this.dbRef.set(cleanData).catch((e) => console.error("Firebase set error:", e));
+      } else {
+        localStorage.setItem(PB.config.localStorageKey, JSON.stringify(cleanData));
+      }
+    } catch (err) {
+      console.error("State save error:", err);
     }
   },
 

@@ -779,9 +779,11 @@ PB.referee = {
           <div>${isServing ? `<span class="ref-serve-badge">GIAO BÓNG (Tay ${sm.serverNum})</span>` : `<span class="muted">Đỡ giao bóng</span>`}</div>
           <div class="ref-big-score">${score}</div>
           ${sm.status === "finished" ? `<div class="badge badge-done">Đã chốt</div>` : (
-            isServing
-              ? `<button class="ref-action-btn ${isA ? "btn-point-a" : "btn-point-b"}" onclick="PB.referee.teamSubPoint('${sideKey}')">+1 ĐIỂM</button>`
-              : `<button class="ref-action-btn btn-sideout" onclick="PB.referee.teamSubSideOut()">ĐỔI GIAO / LỖI</button>`
+            PB.rules.isTeamSubReached(tie, sm)
+              ? `<button class="ref-action-btn btn-secondary" disabled>ĐỦ ĐIỂM KẾT THÚC</button>`
+              : (isServing
+                  ? `<button class="ref-action-btn ${isA ? "btn-point-a" : "btn-point-b"}" onclick="PB.referee.teamSubPoint('${sideKey}')">+1 ĐIỂM</button>`
+                  : `<button class="ref-action-btn btn-sideout" onclick="PB.referee.teamSubSideOut()">ĐỔI TAY</button>`)
           )}
           <div class="ref-side-subbtns">
             <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.teamSubTimeout('${sideKey}')" ${toLeft <= 0 || sm.status === "finished" ? "disabled" : ""}>Timeout (${toLeft})</button>
@@ -798,8 +800,8 @@ PB.referee = {
       <div class="ref-console">
         <div class="ref-topbar">
           <button class="btn btn-sm btn-secondary" onclick="PB.referee.backToTeamHub()">← 4 trận</button>
-          <button class="ref-sub-pill-btn" onclick="PB.referee.openSubPicker()">
-            <span>${PB.app.escape(sm.label)}</span>
+          <button class="ref-sub-pill-btn" style="max-width:240px;" onclick="PB.referee.openSubPicker()">
+            <span>Sân ${tie.court || "?"} • ${PB.app.escape(tie.roundName)} • ${PB.app.escape(sm.label)}</span>
             <span style="font-size:0.7rem;opacity:0.8;">▾</span>
           </button>
           <span class="muted">${isKO ? "15đ (max 18)" : "Chạm 15đ"}</span>
@@ -897,8 +899,8 @@ PB.referee = {
     if (sm.timeouts[side] <= 0) return;
     sm.timeouts[side] -= 1;
     sm.logs.unshift(`[${PB.rules.nowTime()}] Đội ${side} xin Timeout (60s)`);
+    this.startTimer(60, `Timeout — Đội ${side}`);
     PB.state.save();
-    setTimeout(() => this.startTimer(60, `Timeout — Đội ${side}`), 10);
   },
 
   teamSubMedicalSub(side) {
@@ -1001,7 +1003,7 @@ PB.referee = {
         if (await PB.ui.confirm(`Chốt kết thúc ${sm.label} với tỷ số ${sm.scoreA} - ${sm.scoreB}?`, "Xác nhận kết thúc")) {
           PB.rules.confirmFinishTeamSub(tie, this.activeSubIdx);
           PB.state.save();
-          this.backToTeamHub();
+          this._advanceAfterTeamSub(tie);
         }
       }, 80);
     }
@@ -1031,7 +1033,7 @@ PB.referee = {
     if (!(await PB.ui.confirm(`Xác nhận chốt ${sm.label} (${sm.scoreA} - ${sm.scoreB})?`, "Chốt trận"))) return;
     PB.rules.confirmFinishTeamSub(tie, this.activeSubIdx);
     PB.state.save();
-    this.backToTeamHub();
+    this._advanceAfterTeamSub(tie);
   },
 
   async forfeitSubPrompt(subIdx) {
@@ -1170,12 +1172,13 @@ PB.referee = {
           </div>
           <div class="ref-big-score">${score}</div>
           <div class="muted" style="margin-bottom:8px;">Set: <strong>${sets}</strong></div>
-          ${canPoint
-            ? `<button class="ref-action-btn ${isA ? "btn-point-a" : "btn-point-b"}" onclick="PB.referee.point('${sideKey}')">+1 ĐIỂM</button>`
-            : `<button class="ref-action-btn btn-sideout" onclick="PB.referee.sideOut()">ĐỔI GIAO / LỖI</button>`}
+          ${PB.rules.isDoublesSetReached(m, settings)
+            ? `<button class="ref-action-btn btn-secondary" disabled>ĐỦ ĐIỂM KẾT THÚC</button>`
+            : (canPoint
+                ? `<button class="ref-action-btn ${isA ? "btn-point-a" : "btn-point-b"}" onclick="PB.referee.point('${sideKey}')">+1 ĐIỂM</button>`
+                : `<button class="ref-action-btn btn-sideout" onclick="PB.referee.sideOut()">ĐỔI TAY</button>`)}
           <div class="ref-side-subbtns">
             <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.timeout('${sideKey}')" ${toLeft <= 0 ? "disabled" : ""}>Timeout (${toLeft})</button>
-            <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.techFoul('${sideKey}')">Lỗi KT</button>
           </div>
         </div>
       `;
@@ -1189,7 +1192,7 @@ PB.referee = {
       <div class="ref-console">
         <div class="ref-topbar">
           <button class="btn btn-sm btn-secondary" onclick="PB.referee.exitMatch()">← Danh sách trận</button>
-          <div><strong>Sân ${m.court || "?"}</strong> • ${PB.app.escape(m.roundName)}</div>
+          <button class="ref-sub-pill-btn" style="max-width:240px;" onclick="PB.referee.openMatchPicker()"><span>Sân ${m.court || "?"} • ${PB.app.escape(m.roundName)} • Đôi</span><span style="font-size:0.7rem;opacity:0.8;">▾</span></button>
           <button class="btn btn-sm btn-secondary" onclick="PB.viewer.openMatchLog('${m.id}')">Nhật ký</button>
         </div>
         <div class="callout-banner">
@@ -1241,7 +1244,7 @@ PB.referee = {
         if (await PB.ui.confirm(`${wName} đủ điểm thắng Set (${m.scoreA} - ${m.scoreB}). Xác nhận chốt?`, "Kết thúc Set")) {
           const outcome = PB.rules.confirmFinishSetOrMatch(m, PB.state.data.settings);
           PB.state.save();
-          if (outcome === "match_finished") { PB.app.toast(`Chiến thắng: ${wName}`); this.exitMatch(); }
+          if (outcome === "match_finished") { PB.app.toast(`Chiến thắng: ${wName}`); this._advanceNextMatchOnCourt(m.court); }
         }
       }, 100);
     }
@@ -1251,7 +1254,11 @@ PB.referee = {
   swapSides() { const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId); if (m) { m.swapped = !m.swapped; PB.state.save(); } },
   timeout(side) {
     const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
-    if (m && PB.rules.useTimeout(m, side)) { PB.state.save(); setTimeout(() => this.startTimer(60, `Timeout — ${PB.state.getTeamName(side === "A" ? m.teamA : m.teamB)}`), 10); }
+    if (m && PB.rules.useTimeout(m, side)) {
+      const label = `Timeout — ${PB.state.getTeamName(side === "A" ? m.teamA : m.teamB)}`;
+      this.startTimer(60, label);
+      PB.state.save();
+    }
   },
   startMedicalTimer() { this.startTimer(15 * 60, "Medical Timeout (15p)"); },
   _updateTimerModalDom() {
@@ -1352,7 +1359,7 @@ PB.referee = {
     if (!m || m.scoreA === m.scoreB) return PB.ui.alert("Tỷ số đang hòa, chưa thể chốt.");
     if (!(await PB.ui.confirm(`Xác nhận chốt kết quả (${m.scoreA} - ${m.scoreB})?`, "Chốt kết thúc"))) return;
     const out = PB.rules.confirmFinishSetOrMatch(m, PB.state.data.settings); PB.state.save();
-    if (out === "match_finished") this.exitMatch();
+    if (out === "match_finished") this._advanceNextMatchOnCourt(m.court);
   },
   _fmtSec(s) { return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
 };

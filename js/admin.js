@@ -375,8 +375,9 @@ PB.admin = {
       numCourts: Number(document.getElementById("cfgCourts").value) || 4,
       knockoutMode: document.getElementById("cfgKoMode").value
     };
+    PB.bracket.autoAssignCourts();
     PB.state.save();
-    PB.app.toast("Đã lưu cấu hình điều lệ!");
+    PB.app.toast("Đã lưu điều lệ & tự động xếp sân!");
   },
 
   async savePasswords() {

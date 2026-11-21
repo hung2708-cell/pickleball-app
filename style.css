@@ -1386,3 +1386,48 @@ body.ref-scoring-mode .ref-tools-grid .btn {
     body.ref-scoring-mode .ref-action-btn { min-height: 40px; }
   }
 }
+/* =========================================================
+   v16: STICKY TEAM COLUMN ON MOBILE STANDINGS TABLE
+   - Khóa cố định cột # và Đội/Cặp VĐV bên trái trên điện thoại
+   - Các cột chỉ số phía sau vuốt ngang mượt mà
+   ========================================================= */
+@media (max-width: 768px) {
+  .table-wrap {
+    position: relative;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table.data-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  table.data-table th:nth-child(1),
+  table.data-table td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    min-width: 34px;
+    width: 34px;
+    background: var(--surface);
+  }
+  table.data-table th:nth-child(1) {
+    background: var(--surface-sub);
+    z-index: 4;
+  }
+  table.data-table th:nth-child(2),
+  table.data-table td:nth-child(2) {
+    position: sticky;
+    left: 34px;
+    z-index: 3;
+    min-width: 128px;
+    max-width: 155px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: var(--surface);
+    box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.14);
+  }
+  table.data-table th:nth-child(2) {
+    background: var(--surface-sub);
+    z-index: 4;
+  }
+}

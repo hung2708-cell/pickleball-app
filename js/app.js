@@ -148,7 +148,7 @@ PB.app = {
   switchTab(tab, silent = false) {
     this.currentTab = tab;
     if (!silent) this.saveUiState({ currentTab: tab });
-    if (tab !== "referee") document.body.classList.remove("ref-scoring-mode");
+    if (tab !== "referee") document.body.classList.remove("ref-scoring-mode", "ref-lineup-mode");
     document.querySelectorAll(".nav-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tab === tab);
     });

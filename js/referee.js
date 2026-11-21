@@ -22,8 +22,9 @@ PB.referee = {
   timerTotal: 60,
   timerLabel: "",
 
-  _setScoringLock(locked) {
+  _setScoringLock(locked, isLineup = false) {
     document.body.classList.toggle("ref-scoring-mode", !!locked);
+    document.body.classList.toggle("ref-lineup-mode", !!isLineup);
   },
 
   render() {
@@ -460,7 +461,7 @@ PB.referee = {
   // =========================================================
   _renderTeamConsole(tie, el) {
     if (!tie.lineupLocked) {
-      this._setScoringLock(false);
+      this._setScoringLock(false, true);
       this._renderTeamLineupForm(tie, el);
       return;
     }
@@ -669,7 +670,7 @@ PB.referee = {
 
         <div class="card" style="padding:12px;margin-bottom:12px;">
           <div class="form-group" style="margin-bottom:0;">
-            <label>Thứ tự đánh Đơn của ${PB.app.escape(curName)} (nếu hòa 2-2 loại trực tiếp — Nam gặp Nam, Nữ gặp Nữ)</label>
+            <label>Thứ tự Đơn (nếu hòa 2-2: Nam-Nam, Nữ-Nữ)</label>
             <input type="text" class="input" placeholder="VD: Dương(Nữ), Hùng(Nam)..." value="${PB.app.escape(singlesVal)}" oninput="PB.referee.onSinglesInput('${side}', this.value)" />
           </div>
         </div>

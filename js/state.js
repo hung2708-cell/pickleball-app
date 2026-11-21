@@ -1,6 +1,7 @@
 /* =========================================================
    js/state.js
-   - Quản lý cấu trúc dữ liệu giải đấu & đồng bộ Firebase / Local
+   - Quản lý cấu trúc dữ liệu giải đấu (Đôi & Đồng đội)
+   - Tự động đồng bộ Firebase Realtime / LocalStorage
    ========================================================= */
 window.PB = window.PB || {};
 
@@ -15,17 +16,18 @@ PB.state = {
       tournamentName: "Giải Pickleball CLB Bính Dần 1986",
       passwords: { ...PB.config.defaultPasswords },
       settings: {
-        category: "doubles",       // doubles | team
-        scoringMode: "sideout",    // sideout | rally
-        targetPoints: 11,          // 11 | 15
-        winByTwo: true,            // true = thắng cách 2 | false = chạm điểm cứng
-        bestOf: 1,                 // 1 | 3
-        switchPoint: 6,            // Điểm đổi sân (6 cho set 11, 8 cho set 15)
-        numCourts: 4,              // Số sân thi đấu
-        knockoutMode: "serieAB"    // single | serieAB
+        category: "doubles",       // 'doubles' | 'team'
+        scoringMode: "sideout",    // 'sideout' | 'rally' (áp dụng cho Đôi)
+        targetPoints: 11,          // 11 | 15 (cho Đôi)
+        winByTwo: true,            // cho Đôi
+        bestOf: 1,                 // 1 | 3 (cho Đôi)
+        switchPoint: 6,            // cho Đôi
+        numCourts: 4,
+        knockoutMode: "serieAB"    // 'single' | 'serieAB'
       },
-      teams: [],   // { id, name, group, seed }
-      matches: []  // Xem cấu trúc match ở PB.rules.createMatch
+      // team: { id, name, group, seed, rating, roster: [{ name, gender: 'M'|'F' }] }
+      teams: [],
+      matches: []
     };
   },
 
@@ -55,20 +57,15 @@ PB.state = {
       }
     }
 
-    // Fallback chế độ LocalStorage
     this.isCloud = false;
     const raw = localStorage.getItem(PB.config.localStorageKey);
     if (raw) {
-      try {
-        this.data = this._normalize(JSON.parse(raw));
-      } catch {
-        this.data = this.createDefaultData();
-      }
+      try { this.data = this._normalize(JSON.parse(raw)); }
+      catch { this.data = this.createDefaultData(); }
     } else {
       this.data = this.createDefaultData();
     }
 
-    // Đồng bộ giữa các tab trình duyệt khi test local
     window.addEventListener("storage", (e) => {
       if (e.key === PB.config.localStorageKey && e.newValue) {
         this.data = this._normalize(JSON.parse(e.newValue));
@@ -90,12 +87,25 @@ PB.state = {
       teams: Array.isArray(val.teams) ? val.teams : Object.values(val.teams || {}),
       matches: Array.isArray(val.matches) ? val.matches : Object.values(val.matches || {})
     };
+    merged.teams.forEach((t) => {
+      if (!t.roster) t.roster = [];
+    });
     merged.matches.forEach((m) => {
       if (!m.sets) m.sets = [];
       if (!m.history) m.history = [];
       if (!m.logs) m.logs = [];
       if (!m.timeouts) m.timeouts = { A: 2, B: 2 };
       if (!m.fouls) m.fouls = { A: 0, B: 0 };
+      if (m.matchType === "team") {
+        if (!m.subMatches) m.subMatches = PB.rules.createDefaultSubMatches();
+        m.subMatches.forEach((sm) => {
+          if (!sm.history) sm.history = [];
+          if (!sm.logs) sm.logs = [];
+          if (!sm.timeouts) sm.timeouts = { A: 2, B: 2 };
+        });
+        if (!m.singlesOrder) m.singlesOrder = { A: [], B: [] };
+        if (m.dreambreaker && !m.dreambreaker.history) m.dreambreaker.history = [];
+      }
     });
     return merged;
   },
@@ -118,38 +128,84 @@ PB.state = {
     this.listeners.forEach((fn) => fn(this.data));
   },
 
+  getTeam(teamId) {
+    if (!teamId || !this.data) return null;
+    return this.data.teams.find((x) => x.id === teamId) || null;
+  },
+
   getTeamName(teamId) {
     if (!teamId) return "Chờ xác định";
-    const t = this.data.teams.find((x) => x.id === teamId);
+    const t = this.getTeam(teamId);
     return t ? t.name : "TBD";
   },
 
-  loadSampleData() {
+  loadSampleData(category = "doubles") {
     const d = this.createDefaultData();
-    const names = [
-      "Hùng / Dương", "Nam / Khánh", "Dũng / Hạnh", "Lý / Thư",
-      "Minh / Tuấn", "Quang / Hải", "Sơn / Tùng", "Long / Việt"
-    ];
-    d.teams = names.map((name, i) => ({
-      id: "T" + (i + 1),
-      name,
-      group: i < 4 ? "A" : "B",
-      seed: i < 2 ? i + 1 : 0,
-      rating: (2.8 + (i % 4) * 0.2).toFixed(1)
-    }));
-    this.data = d;
-    PB.bracket.generateGroupMatches();
-    // Gán sẵn 2 trận vào sân 1 và sân 2 để test live ngay
-    if (this.data.matches.length >= 2) {
-      this.data.matches[0].court = 1;
-      this.data.matches[0].status = "live";
-      this.data.matches[0].scoreA = 5;
-      this.data.matches[0].scoreB = 4;
-      this.data.matches[1].court = 2;
-      this.data.matches[1].status = "live";
-      this.data.matches[1].scoreA = 7;
-      this.data.matches[1].scoreB = 6;
+    d.settings.category = category;
+
+    if (category === "team") {
+      d.tournamentName = "Giải Đồng Đội Pickleball Bính Dần 1986";
+      d.settings.knockoutMode = "single";
+      const sampleTeams = [
+        { name: "CLB Bính Dần A", group: "A", roster: [
+          { name: "Hùng", gender: "M" }, { name: "Nam", gender: "M" }, { name: "Dũng", gender: "M" },
+          { name: "Dương", gender: "F" }, { name: "Hạnh", gender: "F" }, { name: "Lý", gender: "F" }
+        ]},
+        { name: "CLB Độc Lập", group: "A", roster: [
+          { name: "Minh", gender: "M" }, { name: "Tuấn", gender: "M" }, { name: "Quang", gender: "M" },
+          { name: "Thư", gender: "F" }, { name: "Mai", gender: "F" }, { name: "Lan", gender: "F" }
+        ]},
+        { name: "CLB Thục Phán", group: "A", roster: [
+          { name: "Sơn", gender: "M" }, { name: "Tùng", gender: "M" }, { name: "Hải", gender: "M" },
+          { name: "Hoa", gender: "F" }, { name: "Ngọc", gender: "F" }, { name: "Trang", gender: "F" }
+        ]},
+        { name: "CLB Cao Bằng Pro", group: "B", roster: [
+          { name: "Long", gender: "M" }, { name: "Việt", gender: "M" }, { name: "Khánh", gender: "M" },
+          { name: "Linh", gender: "F" }, { name: "Hà", gender: "F" }, { name: "Vy", gender: "F" }
+        ]},
+        { name: "CLB Hòa An", group: "B", roster: [
+          { name: "Đức", gender: "M" }, { name: "Hiếu", gender: "M" }, { name: "Phong", gender: "M" },
+          { name: "Thảo", gender: "F" }, { name: "Phương", gender: "F" }, { name: "Nhi", gender: "F" }
+        ]},
+        { name: "CLB Non Nước", group: "B", roster: [
+          { name: "Kiên", gender: "M" }, { name: "Cường", gender: "M" }, { name: "Thành", gender: "M" },
+          { name: "Yến", gender: "F" }, { name: "Oanh", gender: "F" }, { name: "My", gender: "F" }
+        ]}
+      ];
+      d.teams = sampleTeams.map((t, i) => ({ id: "T" + (i + 1), seed: 0, rating: "", ...t }));
+      this.data = d;
+      PB.bracket.generateGroupMatches();
+      if (this.data.matches.length > 0) {
+        this.data.matches[0].court = 1;
+        this.data.matches[0].status = "live";
+      }
+      this.save();
+    } else {
+      const names = [
+        "Hùng / Dương", "Nam / Khánh", "Dũng / Hạnh", "Lý / Thư",
+        "Minh / Tuấn", "Quang / Hải", "Sơn / Tùng", "Long / Việt"
+      ];
+      d.teams = names.map((name, i) => ({
+        id: "T" + (i + 1),
+        name,
+        group: i < 4 ? "A" : "B",
+        seed: i < 2 ? i + 1 : 0,
+        rating: (2.8 + (i % 4) * 0.2).toFixed(1),
+        roster: []
+      }));
+      this.data = d;
+      PB.bracket.generateGroupMatches();
+      if (this.data.matches.length >= 2) {
+        this.data.matches[0].court = 1;
+        this.data.matches[0].status = "live";
+        this.data.matches[0].scoreA = 5;
+        this.data.matches[0].scoreB = 4;
+        this.data.matches[1].court = 2;
+        this.data.matches[1].status = "live";
+        this.data.matches[1].scoreA = 7;
+        this.data.matches[1].scoreB = 6;
+      }
+      this.save();
     }
-    this.save();
   }
 };

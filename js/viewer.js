@@ -185,17 +185,27 @@ PB.viewer = {
         <div class="card">
           <div class="section-header">
             <h3>Bảng ${PB.app.escape(g)}</h3>
-            <span class="muted">Ưu tiên: Thắng → Hiệu số → Tổng điểm → Đối đầu</span>
+            <span class="muted">${PB.state.data.settings.category === "team" ? "Thắng 3đ • Hòa 2đ • Thua 1đ • Bỏ cuộc 0đ (Đối kháng → Hệ số → Bốc thăm)" : "Ưu tiên: Thắng → Hiệu số → Tổng điểm → Đối đầu"}</span>
           </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
-                <tr>
-                  <th>#</th><th>Đội / Cặp VĐV</th><th>Trận</th><th>Thắng</th><th>Thua</th><th>Ghi/Thua</th><th>Hiệu số</th>
-                </tr>
+                ${PB.state.data.settings.category === "team"
+                  ? `<tr><th>#</th><th>Đội</th><th>Trận</th><th>T-H-B (BC)</th><th>Điểm BXH</th><th>Hệ số trận</th><th>Hệ số điểm</th></tr>`
+                  : `<tr><th>#</th><th>Đội / Cặp VĐV</th><th>Trận</th><th>Thắng</th><th>Thua</th><th>Ghi/Thua</th><th>Hiệu số</th></tr>`}
               </thead>
               <tbody>
                 ${standings[g].map((row, idx) => `
+                  ${PB.state.data.settings.category === "team" ? `
+                  <tr class="${idx < 2 ? "qualify-a" : "qualify-b"}">
+                    <td><strong>${idx + 1}</strong></td>
+                    <td><strong>${PB.app.escape(row.name)}</strong> ${row.tieDrawNote ? '<span class="badge badge-serieA">Bốc thăm</span>' : ""}</td>
+                    <td>${row.played}</td>
+                    <td>${row.wins}-${row.draws}-${row.losses} ${row.forfeits ? `(BC:${row.forfeits})` : ""}</td>
+                    <td><strong style="color:var(--primary);font-size:1rem;">${row.tablePts}</strong></td>
+                    <td>${row.subWins}-${row.subLosses} (${row.subDiff > 0 ? "+" + row.subDiff : row.subDiff})</td>
+                    <td>${row.diff > 0 ? "+" + row.diff : row.diff}</td>
+                  </tr>` : `
                   <tr class="${idx < 2 ? "qualify-a" : "qualify-b"}">
                     <td><strong>${idx + 1}</strong></td>
                     <td><strong>${PB.app.escape(row.name)}</strong></td>
@@ -204,7 +214,7 @@ PB.viewer = {
                     <td>${row.losses}</td>
                     <td>${row.ptsFor} / ${row.ptsAgainst}</td>
                     <td><strong>${row.diff > 0 ? "+" + row.diff : row.diff}</strong></td>
-                  </tr>
+                  </tr>`}
                 `).join("")}
               </tbody>
             </table>

@@ -39,7 +39,7 @@ PB.admin = {
       <div class="card">
         <div class="section-header">
           <h3>Nhập nhanh danh sách VĐV / Cặp đấu</h3>
-          <button class="btn btn-sm btn-secondary" onclick="PB.admin.loadSample()">⚡ Tải dữ liệu mẫu (8 cặp)</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-sm btn-secondary" onclick="PB.admin.loadSample('doubles')">Mẫu Đôi (8 cặp)</button><button class="btn btn-sm btn-warning" onclick="PB.admin.loadSample('team')">Mẫu Đồng đội (6 đội)</button></div>
         </div>
         <div class="form-group">
           <label>Dán danh sách từ Zalo / Excel (mỗi dòng 1 cặp VĐV):</label>
@@ -74,7 +74,7 @@ PB.admin = {
                       ${["A", "B", "C", "D"].map((g) => `<option value="${g}" ${t.group === g ? "selected" : ""}>Bảng ${g}</option>`).join("")}
                     </select>
                   </td>
-                  <td><button class="btn btn-sm btn-danger" onclick="PB.admin.deleteTeam('${t.id}')">Xóa</button></td>
+                  <td><div style="display:flex;gap:6px;">${PB.state.data.settings.category === "team" ? `<button class="btn btn-sm btn-secondary" onclick="PB.admin.editRosterPrompt('${t.id}')">VĐV (${(t.roster||[]).length})</button>` : ""}<button class="btn btn-sm btn-danger" onclick="PB.admin.deleteTeam('${t.id}')">Xóa</button></div></td>
                 </tr>
               `).join("") : `<tr><td colspan="4" class="muted text-center">Chưa có đội nào.</td></tr>`}
             </tbody>
@@ -283,10 +283,24 @@ PB.admin = {
     PB.state.save();
   },
 
-  loadSample() {
-    if (!confirm("Tải dữ liệu mẫu 8 cặp (2 bảng A/B) sẽ ghi đè dữ liệu hiện tại?")) return;
-    PB.state.loadSampleData();
-    PB.app.toast("⚡ Đã tải dữ liệu mẫu 8 cặp!");
+  loadSample(cat = "doubles") {
+    const label = cat === "team" ? "Đồng đội (6 đội, sẵn VĐV Nam/Nữ)" : "Đôi (8 cặp)";
+    if (!confirm(`Tải dữ liệu mẫu ${label} sẽ ghi đè dữ liệu hiện tại?`)) return;
+    PB.state.loadSampleData(cat);
+    PB.app.toast(`Đã tải dữ liệu mẫu ${label}!`);
+  },
+  editRosterPrompt(teamId) {
+    const t = PB.state.getTeam(teamId);
+    if (!t) return;
+    const cur = (t.roster || []).map((p) => `${p.name}(${p.gender === "M" ? "Nam" : "Nữ"})`).join(", ");
+    const inp = prompt(`Nhập danh sách VĐV của [${t.name}] (cách nhau dấu phẩy, kèm giới tính):\nVí dụ: Hùng(Nam), Nam(Nam), Dương(Nữ), Hạnh(Nữ)`, cur);
+    if (inp === null) return;
+    t.roster = inp.split(",").map((s) => s.trim()).filter(Boolean).map((s) => {
+      const isF = /nữ|nu|\(f\)/i.test(s);
+      return { name: s.replace(/\(.*?\)/g, "").trim(), gender: isF ? "F" : "M" };
+    });
+    PB.state.save();
+    PB.app.toast(`Đã cập nhật ${t.roster.length} VĐV cho ${t.name}`);
   },
 
   generateGroupSchedule() {

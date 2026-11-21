@@ -1,9 +1,9 @@
 /* =========================================================
    js/bracket.js
-   - Chia bảng, sinh lịch vòng tròn (Round-Robin)
-   - Xếp hạng vòng bảng chuẩn điều lệ:
-     1. Số trận thắng -> 2. Hiệu số điểm -> 3. Tổng điểm ghi -> 4. Đối đầu
-   - Chốt vòng bảng -> Tự động đẩy nhánh (1 Nhánh hoặc Serie A + B)
+   - Hỗ trợ xếp hạng chuẩn cho cả Đôi và Đồng đội:
+     + Đồng đội: Thắng 3đ, Hòa 2đ, Thua 1đ, Bỏ cuộc 0đ.
+       Thứ tự xếp hạng: Tổng điểm -> Đối kháng -> Hệ số thắng thua (trận & điểm) -> Bốc thăm.
+     + Đôi: Số trận thắng -> Hiệu số điểm -> Tổng điểm ghi -> Đối đầu.
    ========================================================= */
 window.PB = window.PB || {};
 
@@ -20,7 +20,6 @@ PB.bracket = {
 
   generateGroupMatches() {
     const groups = this.getGroups();
-    // Giữ lại trận knockout nếu có, hoặc reset toàn bộ vòng bảng
     const newMatches = [];
     let counter = 1;
 
@@ -47,6 +46,7 @@ PB.bracket = {
   },
 
   calculateStandings() {
+    const isTeam = PB.state.data.settings.category === "team";
     const groups = this.getGroups();
     const matches = PB.state.data.matches.filter((m) => m.stage === "group" && m.status === "finished");
     const result = {};
@@ -59,11 +59,18 @@ PB.bracket = {
           name: t.name,
           played: 0,
           wins: 0,
+          draws: 0,
           losses: 0,
-          ptsFor: 0,
-          ptsAgainst: 0,
+          forfeits: 0,
+          tablePts: 0,      // Điểm BXH đồng đội (3/2/1/0)
+          subWins: 0,       // Số trận đôi thắng
+          subLosses: 0,     // Số trận đôi thua
+          ptsFor: 0,        // Tổng điểm quả ghi được
+          ptsAgainst: 0,    // Tổng điểm quả thua
           diff: 0,
-          h2h: {}
+          subDiff: 0,
+          h2h: {},
+          tieDrawNote: false
         };
       });
 
@@ -72,37 +79,94 @@ PB.bracket = {
         const sB = stats[m.teamB];
         if (!sA || !sB) return;
 
-        let pA = 0, pB = 0;
-        if (m.sets && m.sets.length) {
-          m.sets.forEach((s) => { pA += Number(s.a || 0); pB += Number(s.b || 0); });
-        } else {
-          pA = Number(m.scoreA || 0);
-          pB = Number(m.scoreB || 0);
-        }
-
         sA.played++; sB.played++;
-        sA.ptsFor += pA; sA.ptsAgainst += pB;
-        sB.ptsFor += pB; sB.ptsAgainst += pA;
 
-        if (m.winner === "A") {
-          sA.wins++; sB.losses++;
-          sA.h2h[m.teamB] = 1; sB.h2h[m.teamA] = -1;
-        } else if (m.winner === "B") {
-          sB.wins++; sA.losses++;
-          sB.h2h[m.teamA] = 1; sA.h2h[m.teamB] = -1;
+        if (isTeam && m.matchType === "team") {
+          // Cộng điểm quả từ 4 trận con
+          (m.subMatches || []).forEach((sm) => {
+            sA.ptsFor += Number(sm.scoreA || 0);
+            sA.ptsAgainst += Number(sm.scoreB || 0);
+            sB.ptsFor += Number(sm.scoreB || 0);
+            sB.ptsAgainst += Number(sm.scoreA || 0);
+          });
+          sA.subWins += Number(m.scoreA || 0);
+          sA.subLosses += Number(m.scoreB || 0);
+          sB.subWins += Number(m.scoreB || 0);
+          sB.subLosses += Number(m.scoreA || 0);
+
+          if (m.forfeitSide === "A") {
+            sA.forfeits++; sA.tablePts += 0;
+            sB.wins++; sB.tablePts += 3;
+            sB.h2h[m.teamA] = 1; sA.h2h[m.teamB] = -1;
+          } else if (m.forfeitSide === "B") {
+            sB.forfeits++; sB.tablePts += 0;
+            sA.wins++; sA.tablePts += 3;
+            sA.h2h[m.teamB] = 1; sB.h2h[m.teamA] = -1;
+          } else if (m.winner === "A") {
+            sA.wins++; sA.tablePts += 3;
+            sB.losses++; sB.tablePts += 1;
+            sA.h2h[m.teamB] = 1; sB.h2h[m.teamA] = -1;
+          } else if (m.winner === "B") {
+            sB.wins++; sB.tablePts += 3;
+            sA.losses++; sA.tablePts += 1;
+            sB.h2h[m.teamA] = 1; sA.h2h[m.teamB] = -1;
+          } else if (m.winner === "DRAW") {
+            sA.draws++; sA.tablePts += 2;
+            sB.draws++; sB.tablePts += 2;
+          }
+        } else {
+          // Thể thức Đôi
+          let pA = 0, pB = 0;
+          if (m.sets && m.sets.length) {
+            m.sets.forEach((s) => { pA += Number(s.a || 0); pB += Number(s.b || 0); });
+          } else {
+            pA = Number(m.scoreA || 0);
+            pB = Number(m.scoreB || 0);
+          }
+          sA.ptsFor += pA; sA.ptsAgainst += pB;
+          sB.ptsFor += pB; sB.ptsAgainst += pA;
+          if (m.winner === "A") {
+            sA.wins++; sB.losses++;
+            sA.h2h[m.teamB] = 1; sB.h2h[m.teamA] = -1;
+          } else if (m.winner === "B") {
+            sB.wins++; sA.losses++;
+            sB.h2h[m.teamA] = 1; sA.h2h[m.teamB] = -1;
+          }
         }
       });
 
-      const arr = Object.values(stats).map((s) => ({ ...s, diff: s.ptsFor - s.ptsAgainst }));
+      const arr = Object.values(stats).map((s) => ({
+        ...s,
+        diff: s.ptsFor - s.ptsAgainst,
+        subDiff: s.subWins - s.subLosses
+      }));
 
-      // Xếp hạng chuẩn điều lệ
-      arr.sort((a, b) => {
-        if (b.wins !== a.wins) return b.wins - a.wins;
-        if (b.diff !== a.diff) return b.diff - a.diff;
-        if (b.ptsFor !== a.ptsFor) return b.ptsFor - a.ptsFor;
-        if (a.h2h[b.teamId]) return -a.h2h[b.teamId];
-        return a.name.localeCompare(b.name);
-      });
+      if (isTeam) {
+        // Luật đồng đội: Điểm BXH -> Đối kháng -> Hệ số trận thắng/thua -> Hệ số điểm -> Bốc thăm
+        arr.sort((a, b) => {
+          if (b.tablePts !== a.tablePts) return b.tablePts - a.tablePts;
+          if (a.h2h[b.teamId]) return -a.h2h[b.teamId];
+          if (b.subDiff !== a.subDiff) return b.subDiff - a.subDiff;
+          if (b.diff !== a.diff) return b.diff - a.diff;
+          return 0;
+        });
+        // Đánh dấu nếu 2 đội liền kề bằng nhau mọi chỉ số -> cần bốc thăm
+        for (let i = 0; i < arr.length - 1; i++) {
+          const a = arr[i], b = arr[i + 1];
+          if (a.played > 0 && a.tablePts === b.tablePts && !a.h2h[b.teamId] && a.subDiff === b.subDiff && a.diff === b.diff) {
+            a.tieDrawNote = true;
+            b.tieDrawNote = true;
+          }
+        }
+      } else {
+        arr.sort((a, b) => {
+          if (b.wins !== a.wins) return b.wins - a.wins;
+          if (b.diff !== a.diff) return b.diff - a.diff;
+          if (b.ptsFor !== a.ptsFor) return b.ptsFor - a.ptsFor;
+          if (a.h2h[b.teamId]) return -a.h2h[b.teamId];
+          return a.name.localeCompare(b.name);
+        });
+      }
 
       result[gName] = arr;
     });
@@ -116,13 +180,11 @@ PB.bracket = {
     if (gNames.length < 1) return { ok: false, msg: "Chưa có bảng đấu nào." };
 
     const mode = PB.state.data.settings.knockoutMode;
-    // Xóa các trận knockout cũ, giữ nguyên vòng bảng
     const groupMatches = PB.state.data.matches.filter((m) => m.stage === "group");
     const koMatches = [];
 
     const buildTree = (stageKey, labelPrefix, seeds) => {
       if (seeds.length < 2) return;
-      // Hỗ trợ nhánh 2, 4, hoặc 8 đội
       let size = 2;
       if (seeds.length >= 4) size = 4;
       if (seeds.length >= 8) size = 8;
@@ -144,8 +206,7 @@ PB.bracket = {
           teamA: list[1], teamB: list[2], nextMatchId: fId, nextSlot: "B"
         }));
         koMatches.push(PB.rules.createMatch({
-          id: fId, stage: stageKey, roundName: `${labelPrefix} - Chung kết`,
-          teamA: null, teamB: null
+          id: fId, stage: stageKey, roundName: `${labelPrefix} - Chung kết`
         }));
       } else if (size === 8) {
         const fId = `${stageKey}_F`;
@@ -157,21 +218,12 @@ PB.bracket = {
             teamA: list[i], teamB: list[j], nextMatchId: nxt, nextSlot: slot
           }));
         });
-        koMatches.push(PB.rules.createMatch({
-          id: sf1, stage: stageKey, roundName: `${labelPrefix} - Bán kết 1`,
-          nextMatchId: fId, nextSlot: "A"
-        }));
-        koMatches.push(PB.rules.createMatch({
-          id: sf2, stage: stageKey, roundName: `${labelPrefix} - Bán kết 2`,
-          nextMatchId: fId, nextSlot: "B"
-        }));
-        koMatches.push(PB.rules.createMatch({
-          id: fId, stage: stageKey, roundName: `${labelPrefix} - Chung kết`
-        }));
+        koMatches.push(PB.rules.createMatch({ id: sf1, stage: stageKey, roundName: `${labelPrefix} - Bán kết 1`, nextMatchId: fId, nextSlot: "A" }));
+        koMatches.push(PB.rules.createMatch({ id: sf2, stage: stageKey, roundName: `${labelPrefix} - Bán kết 2`, nextMatchId: fId, nextSlot: "B" }));
+        koMatches.push(PB.rules.createMatch({ id: fId, stage: stageKey, roundName: `${labelPrefix} - Chung kết` }));
       }
     };
 
-    // Lấy hạt giống chéo: Nhất A, Nhất B... rồi Nhì A, Nhì B...
     const top1 = gNames.map((g) => standings[g][0]?.teamId).filter(Boolean);
     const top2 = gNames.map((g) => standings[g][1]?.teamId).filter(Boolean);
     const serieASeeds = [...top1, ...top2.reverse()];
@@ -181,9 +233,7 @@ PB.bracket = {
       const rank3 = gNames.map((g) => standings[g][2]?.teamId).filter(Boolean);
       const rank4 = gNames.map((g) => standings[g][3]?.teamId).filter(Boolean);
       const serieBSeeds = [...rank3, ...rank4.reverse()];
-      if (serieBSeeds.length >= 2) {
-        buildTree("serieB", "Serie B", serieBSeeds);
-      }
+      if (serieBSeeds.length >= 2) buildTree("serieB", "Serie B", serieBSeeds);
     } else {
       buildTree("knockout", "Vòng Loại", serieASeeds);
     }
@@ -194,7 +244,7 @@ PB.bracket = {
   },
 
   propagateWinner(match) {
-    if (!match.nextMatchId || !match.winner) return;
+    if (!match.nextMatchId || !match.winner || match.winner === "DRAW") return;
     const nextMatch = PB.state.data.matches.find((m) => m.id === match.nextMatchId);
     if (!nextMatch) return;
     const winnerTeamId = match.winner === "A" ? match.teamA : match.teamB;

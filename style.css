@@ -1431,3 +1431,80 @@ body.ref-scoring-mode .ref-tools-grid .btn {
     z-index: 4;
   }
 }
+/* =========================================================
+   v18: MOBILE OPTIMIZATION FOR TEAM LINEUP FORM (<= 768px)
+   - Gọn gàng, không bị cắt chữ dropdown, không bị thanh tab bar che nút
+   - Máy tính (> 768px) giữ nguyên
+   ========================================================= */
+.lineup-match-card {
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.lineup-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .lineup-console {
+    padding: 10px !important;
+    margin-bottom: 16px;
+  }
+  .lineup-console .ref-topbar {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+  .lineup-stepper {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .step-pill {
+    padding: 7px 8px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lineup-console > p.muted {
+    font-size: 0.76rem;
+    margin-bottom: 8px !important;
+    line-height: 1.35;
+  }
+  .roster-quota-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 7px 8px;
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+  .quota-chip {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    padding: 3px 8px;
+  }
+  .lineup-match-card {
+    padding: 10px !important;
+    margin-bottom: 8px !important;
+    border-radius: 14px !important;
+  }
+  .lineup-match-card select.input-sm,
+  .lineup-match-card input.input-sm {
+    font-size: 0.84rem !important;
+    padding: 8px 8px !important;
+    min-width: 0;
+  }
+  .lineup-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .lineup-actions .btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 0.92rem;
+  }
+}

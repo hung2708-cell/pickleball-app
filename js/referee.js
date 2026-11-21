@@ -106,64 +106,117 @@ PB.referee = {
     this.renderConsole();
   },
 
-  // Vẽ sơ đồ kẻ sân Pickleball chuẩn + nhấp nháy ô Phát bóng & Đỡ bóng
+  // Vẽ sơ đồ sân Pickleball 2D chuẩn tỉ lệ USAP (44ft x 20ft) bằng SVG tự co giãn mọi thiết bị
   _renderCourtDiagram({ leftSide, rightSide, leftName, rightName, serverSide, scoreA, scoreB, serverNum }) {
     const serverScore = serverSide === "A" ? scoreA : scoreB;
     const isEven = (serverScore % 2) === 0;
     const serverOnLeft = (serverSide === leftSide);
 
-    // Quy tắc Pickleball:
-    // - Nhìn vào lưới: Điểm CHẴN giao từ ô BÊN PHẢI; Điểm LẺ giao từ ô BÊN TRÁI.
-    // - Với nửa sân TRÁI (nhìn sang phải): ô PHẢI là ô DƯỚI (bottom), ô TRÁI là ô TRÊN (top).
-    // - Với nửa sân PHẢI (nhìn sang trái): ô PHẢI là ô TRÊN (top), ô TRÁI là ô DƯỚI (bottom).
-    // - Ô đỡ bóng luôn nằm CHÉO đối diện với ô giao bóng.
+    // Tọa độ chuẩn trong viewBox="0 0 480 230" (vùng sân 440x200 đặt tại x=20, y=15)
+    // Tỉ lệ 10px = 1ft:
+    // - Nửa sân trái: Ô giao bóng x=20..170 (150px = 15ft), Kitchen trái x=170..240 (70px = 7ft)
+    // - Lưới ở x=240
+    // - Nửa sân phải: Kitchen phải x=240..310 (70px = 7ft), Ô giao bóng x=310..460 (150px = 15ft)
+    // - Chiều dọc: y=15..115 (100px = 10ft ô trên), y=115..215 (100px = 10ft ô dưới)
     let lTop = "", lBot = "", rTop = "", rBot = "";
+    let arrow = { x1: 0, y1: 0, x2: 0, y2: 0 };
+
     if (serverOnLeft) {
-      if (isEven) { lBot = "serve"; rTop = "receive"; }
-      else { lTop = "serve"; rBot = "receive"; }
+      if (isEven) {
+        lBot = "serve"; rTop = "receive";
+        arrow = { x1: 115, y1: 165, x2: 365, y2: 65 };
+      } else {
+        lTop = "serve"; rBot = "receive";
+        arrow = { x1: 115, y1: 65, x2: 365, y2: 165 };
+      }
     } else {
-      if (isEven) { rTop = "serve"; lBot = "receive"; }
-      else { rBot = "serve"; lTop = "receive"; }
+      if (isEven) {
+        rTop = "serve"; lBot = "receive";
+        arrow = { x1: 365, y1: 65, x2: 115, y2: 165 };
+      } else {
+        rBot = "serve"; lTop = "receive";
+        arrow = { x1: 365, y1: 165, x2: 115, y2: 65 };
+      }
     }
 
-    const boxHtml = (state, posLabel) => {
+    const renderBox = (x, y, state, posLabel) => {
+      const cls = state === "serve" ? "svg-serve-box" : state === "receive" ? "svg-receive-box" : "";
+      const fill = state ? "" : "#1d4ed8";
+      const cx = x + 75;
+      const cy = y + 50;
+      let inner = `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="rgba(255,255,255,0.65)" font-size="11" font-weight="700">${posLabel}</text>`;
       if (state === "serve") {
-        return `<div class="pb-box is-serve-box"><span class="pb-tag-pill">PHÁT BÓNG</span><span>${posLabel}</span>${serverNum ? `<span class="pb-box-sub">Lượt ${serverNum}</span>` : ""}</div>`;
+        inner = `
+          <rect x="${cx - 46}" y="${cy - 22}" width="92" height="20" rx="10" fill="rgba(0,0,0,0.48)" />
+          <text x="${cx}" y="${cy - 8}" text-anchor="middle" fill="#fde047" font-size="10.5" font-weight="800">PHÁT BÓNG</text>
+          <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700">${posLabel}${serverNum ? ` • Lượt ${serverNum}` : ""}</text>
+        `;
+      } else if (state === "receive") {
+        inner = `
+          <rect x="${cx - 42}" y="${cy - 22}" width="84" height="20" rx="10" fill="rgba(0,0,0,0.48)" />
+          <text x="${cx}" y="${cy - 8}" text-anchor="middle" fill="#6ee7b7" font-size="10.5" font-weight="800">ĐỠ BÓNG</text>
+          <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700">${posLabel}</text>
+        `;
       }
-      if (state === "receive") {
-        return `<div class="pb-box is-receive-box"><span class="pb-tag-pill">ĐỠ BÓNG</span><span>${posLabel}</span></div>`;
-      }
-      return `<div class="pb-box"><span>${posLabel}</span></div>`;
+      return `
+        <rect x="${x}" y="${y}" width="150" height="100" fill="${fill}" class="${cls}" stroke="#ffffff" stroke-width="2" />
+        ${inner}
+      `;
     };
 
     return `
-      <div class="pb-court-card">
-        <div class="pb-court-legend">
-          <span><strong>Sân Trái:</strong> ${PB.app.escape(leftName)}</span>
-          <div>
-            <span><i class="pb-legend-dot" style="background:#ea580c;"></i>Phát</span>
-            <span style="margin-left:8px;"><i class="pb-legend-dot" style="background:#059669;"></i>Đỡ</span>
-          </div>
-          <span><strong>Sân Phải:</strong> ${PB.app.escape(rightName)}</span>
+      <div class="pb-court-2d-wrap">
+        <div class="pb-court-2d-header">
+          <span class="pb-court-2d-side-tag"><strong>Trái:</strong> ${PB.app.escape(leftName)}</span>
+          <span class="pb-court-2d-side-tag"><strong>Phải:</strong> ${PB.app.escape(rightName)}</span>
         </div>
-        <div class="pb-court-grid">
-          <div class="pb-service-col">
-            ${boxHtml(lTop, "Ô Trái (Lẻ)")}
-            ${boxHtml(lBot, "Ô Phải (Chẵn)")}
-          </div>
-          <div class="pb-kitchen">KITCHEN</div>
-          <div class="pb-net"></div>
-          <div class="pb-kitchen">KITCHEN</div>
-          <div class="pb-service-col">
-            ${boxHtml(rTop, "Ô Phải (Chẵn)")}
-            ${boxHtml(rBot, "Ô Trái (Lẻ)")}
-          </div>
+        <div class="pb-court-svg-box">
+          <svg class="pb-court-svg" viewBox="0 0 480 230" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="serveArrowHead" markerWidth="8" markerHeight="8" refX="6" refY="3.5" orient="auto">
+                <polygon points="0 0, 8 3.5, 0 7" fill="#fde047" />
+              </marker>
+            </defs>
+            <!-- Vùng ngoài sân (Out-of-bounds apron) -->
+            <rect x="0" y="0" width="480" height="230" rx="12" fill="#0f766e" opacity="0.35" />
+
+            <!-- 4 ô giao bóng chuẩn 15x10ft -->
+            ${renderBox(20, 15, lTop, "Ô Trái (Lẻ)")}
+            ${renderBox(20, 115, lBot, "Ô Phải (Chẵn)")}
+            ${renderBox(310, 15, rTop, "Ô Phải (Chẵn)")}
+            ${renderBox(310, 115, rBot, "Ô Trái (Lẻ)")}
+
+            <!-- 2 vùng Non-Volley Zone (Kitchen 7ft) -->
+            <rect x="170" y="15" width="70" height="200" fill="#0284c7" stroke="#ffffff" stroke-width="2" />
+            <rect x="240" y="15" width="70" height="200" fill="#0284c7" stroke="#ffffff" stroke-width="2" />
+            <text x="205" y="119" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="11" font-weight="800" transform="rotate(-90 205 115)">KITCHEN</text>
+            <text x="275" y="119" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="11" font-weight="800" transform="rotate(90 275 115)">KITCHEN</text>
+
+            <!-- Đường viền ngoài sân đậm -->
+            <rect x="20" y="15" width="440" height="200" fill="none" stroke="#ffffff" stroke-width="3" />
+
+            <!-- Lưới giữa sân + 2 cột lưới -->
+            <line x1="240" y1="7" x2="240" y2="223" stroke="#f8fafc" stroke-width="4" stroke-dasharray="6,4" />
+            <circle cx="240" cy="7" r="4.5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5" />
+            <circle cx="240" cy="223" r="4.5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5" />
+
+            <!-- Đường bay giao bóng chéo sân -->
+            <line x1="${arrow.x1}" y1="${arrow.y1}" x2="${arrow.x2}" y2="${arrow.y2}" stroke="#fde047" stroke-width="2.5" stroke-dasharray="7,5" opacity="0.88" marker-end="url(#serveArrowHead)" />
+          </svg>
+        </div>
+        <div class="pb-court-2d-legend">
+          <span><i class="pb-legend-dot" style="background:#ea580c;"></i>Ô Phát bóng (Chẵn: Phải • Lẻ: Trái)</span>
+          <span><i class="pb-legend-dot" style="background:#059669;"></i>Ô Đỡ bóng (Chéo sân)</span>
         </div>
       </div>
     `;
   },
 
-  // Bốc thăm chọn bóng / chọn sân (iOS 27 Modal)
+  // =========================================================
+  // BỐC THĂM 2 BƯỚC CHUẨN LUẬT:
+  // Bước 1: Tung đồng xu -> Đội thắng chọn Sân HOẶC Bóng
+  // Bước 2: Đội còn lại chọn phần còn lại (Bóng HOẶC Sân)
+  // =========================================================
   openTossModal() {
     const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     if (!m) return;
@@ -175,64 +228,152 @@ PB.referee = {
       ? ((m.subMatches[this.activeSubIdx].playersB || []).filter(Boolean).join(" / ") || PB.state.getTeamName(m.teamB))
       : PB.state.getTeamName(m.teamB);
 
-    PB.app.openInfoModal("Bốc thăm chọn bóng & chọn sân", `
-      <div class="text-center">
-        <div id="tossCoinEl" class="toss-coin">?</div>
-        <div id="tossResultText" style="font-weight:800;font-size:1rem;margin-bottom:12px;">
-          Bấm nút bên dưới để bốc thăm ngẫu nhiên giữa 2 đội
-        </div>
-        <button class="btn btn-primary" style="width:100%;margin-bottom:14px;" onclick="PB.referee.runCoinToss('${PB.app.escape(nA)}', '${PB.app.escape(nB)}')">
-          Tung đồng xu bốc thăm
-        </button>
+    this._tossState = {
+      nameA: nA,
+      nameB: nB,
+      winner: null,        // 'A' | 'B'
+      loser: null,         // 'B' | 'A'
+      firstCategory: null, // 'ball' | 'side'
+      server: null,        // 'A' | 'B'
+      swapped: null        // boolean (true = B bên trái, A bên phải)
+    };
 
-        <div id="tossChoicesBox" class="hidden" style="border-top:1px solid var(--border);padding-top:12px;text-align:left;">
-          <div class="muted" style="margin-bottom:8px;text-align:center;">Đội thắng bốc thăm chọn quyền ưu tiên:</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button class="btn btn-primary" onclick="PB.referee.applyTossChoice('serve')">Chọn Giao bóng trước</button>
-            <button class="btn btn-secondary" onclick="PB.referee.applyTossChoice('receive')">Chọn Đỡ bóng trước</button>
-            <button class="btn btn-secondary" onclick="PB.referee.applyTossChoice('left')">Chọn Sân Trái</button>
-            <button class="btn btn-secondary" onclick="PB.referee.applyTossChoice('right')">Chọn Sân Phải</button>
+    this._renderTossModalContent();
+    document.getElementById("infoModal").classList.remove("hidden");
+  },
+
+  _renderTossModalContent() {
+    const st = this._tossState;
+    if (!st) return;
+    document.getElementById("infoModalTitle").textContent = "Bốc thăm chọn bóng & chọn sân";
+    const body = document.getElementById("infoModalBody");
+
+    if (!st.winner) {
+      body.innerHTML = `
+        <div class="text-center">
+          <div class="toss-step-badge">Bước 1/3 • Tung đồng xu</div>
+          <div id="tossCoinEl" class="toss-coin">?</div>
+          <div style="font-weight:700;margin-bottom:14px;">
+            ${PB.app.escape(st.nameA)} <span class="muted">vs</span> ${PB.app.escape(st.nameB)}
+          </div>
+          <button class="btn btn-primary" style="width:100%;" onclick="PB.referee.runCoinToss()">
+            Tung đồng xu bốc thăm
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    const winName = st.winner === "A" ? st.nameA : st.nameB;
+    const loseName = st.loser === "A" ? st.nameA : st.nameB;
+
+    if (!st.firstCategory) {
+      body.innerHTML = `
+        <div class="text-center">
+          <div class="toss-step-badge">Bước 2/3 • Đội thắng chọn trước</div>
+          <div class="toss-coin">${st.winner}</div>
+          <div style="font-weight:800;font-size:1rem;margin-bottom:6px;">
+            Thắng bốc thăm: <span style="color:var(--primary);">${PB.app.escape(winName)}</span>
+          </div>
+          <p class="muted" style="margin:0 0 12px;">Chọn quyền <strong>Bóng</strong> hoặc quyền <strong>Sân</strong>. Đội còn lại sẽ chọn phần còn lại.</p>
+
+          <div style="text-align:left;margin-bottom:10px;">
+            <div class="muted" style="font-weight:700;margin-bottom:6px;">1. Chọn quyền Bóng:</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <button class="btn btn-primary" onclick="PB.referee.pickTossStep1('ball','serve')">Giao bóng trước</button>
+              <button class="btn btn-secondary" onclick="PB.referee.pickTossStep1('ball','receive')">Đỡ bóng trước</button>
+            </div>
+          </div>
+
+          <div style="text-align:left;">
+            <div class="muted" style="font-weight:700;margin-bottom:6px;">2. Hoặc chọn Sân:</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <button class="btn btn-secondary" onclick="PB.referee.pickTossStep1('side','left')">Chọn Sân Trái</button>
+              <button class="btn btn-secondary" onclick="PB.referee.pickTossStep1('side','right')">Chọn Sân Phải</button>
+            </div>
           </div>
         </div>
+      `;
+      return;
+    }
+
+    // Bước 3: Đội còn lại chọn phần còn lại
+    const summaryText = st.firstCategory === "ball"
+      ? `<strong>${PB.app.escape(winName)}</strong> đã chọn: <strong>${st.server === st.winner ? "Giao bóng trước" : "Đỡ bóng trước"}</strong>.`
+      : `<strong>${PB.app.escape(winName)}</strong> đã chọn: <strong>${(st.swapped ? "B" : "A") === st.winner ? "Sân Trái" : "Sân Phải"}</strong>.`;
+
+    body.innerHTML = `
+      <div class="text-center">
+        <div class="toss-step-badge" style="background:var(--emerald-soft);color:var(--emerald);">Bước 3/3 • Đội còn lại chọn phần còn lại</div>
+        <div class="toss-summary-pill">${summaryText}</div>
+        <div style="font-weight:800;font-size:1rem;margin-bottom:10px;">
+          Mời <span style="color:var(--emerald);">${PB.app.escape(loseName)}</span> chọn ${st.firstCategory === "ball" ? "Sân thi đấu" : "quyền Bóng"}:
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          ${st.firstCategory === "ball" ? `
+            <button class="btn btn-success" onclick="PB.referee.pickTossStep2('left')">Chọn Sân Trái</button>
+            <button class="btn btn-success" onclick="PB.referee.pickTossStep2('right')">Chọn Sân Phải</button>
+          ` : `
+            <button class="btn btn-success" onclick="PB.referee.pickTossStep2('serve')">Giao bóng trước</button>
+            <button class="btn btn-success" onclick="PB.referee.pickTossStep2('receive')">Đỡ bóng trước</button>
+          `}
+        </div>
       </div>
-    `);
+    `;
   },
 
-  runCoinToss(nA, nB) {
+  runCoinToss() {
     const coin = document.getElementById("tossCoinEl");
-    const txt = document.getElementById("tossResultText");
-    const box = document.getElementById("tossChoicesBox");
-    if (!coin) return;
-    coin.classList.remove("spinning");
-    void coin.offsetWidth;
-    coin.classList.add("spinning");
-
+    if (coin) {
+      coin.classList.remove("spinning");
+      void coin.offsetWidth;
+      coin.classList.add("spinning");
+    }
     const winner = Math.random() < 0.5 ? "A" : "B";
-    this._lastTossWinner = winner;
     setTimeout(() => {
-      coin.textContent = winner;
-      txt.innerHTML = `Đội thắng bốc thăm: <span style="color:var(--primary);">${winner === "A" ? nA : nB}</span>`;
-      box.classList.remove("hidden");
-    }, 350);
+      this._tossState.winner = winner;
+      this._tossState.loser = winner === "A" ? "B" : "A";
+      this._renderTossModalContent();
+    }, 380);
   },
 
-  applyTossChoice(choice) {
+  pickTossStep1(category, choice) {
+    const st = this._tossState;
+    if (!st) return;
+    st.firstCategory = category;
+    if (category === "ball") {
+      st.server = (choice === "serve") ? st.winner : st.loser;
+    } else {
+      // Nếu winner chọn Trái -> nếu winner là B thì swapped = true; nếu winner là A thì swapped = false
+      st.swapped = (choice === "left") ? (st.winner === "B") : (st.winner === "A");
+    }
+    this._renderTossModalContent();
+  },
+
+  pickTossStep2(choice) {
+    const st = this._tossState;
     const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
-    if (!m || !this._lastTossWinner) return;
-    const w = this._lastTossWinner;
-    const opp = w === "A" ? "B" : "A";
+    if (!st || !m) return;
+
+    if (st.firstCategory === "ball") {
+      // Đội thua chọn Sân
+      st.swapped = (choice === "left") ? (st.loser === "B") : (st.loser === "A");
+    } else {
+      // Đội thua chọn Bóng
+      st.server = (choice === "serve") ? st.loser : st.winner;
+    }
+
     const target = (m.matchType === "team" && typeof this.activeSubIdx === "number")
       ? m.subMatches[this.activeSubIdx]
       : m;
 
-    if (choice === "serve") { target.server = w; target.serverNum = 2; }
-    else if (choice === "receive") { target.server = opp; target.serverNum = 2; }
-    else if (choice === "left") { target.swapped = (w === "B"); }
-    else if (choice === "right") { target.swapped = (w === "A"); }
+    target.server = st.server;
+    target.serverNum = 2;
+    target.swapped = !!st.swapped;
 
     PB.state.save();
     PB.app.closeModal("infoModal");
-    PB.app.toast("Đã áp dụng kết quả bốc thăm!");
+    PB.app.toast("Đã áp dụng đầy đủ kết quả bốc thăm Sân & Bóng!");
   },
 
   exitMatch() {

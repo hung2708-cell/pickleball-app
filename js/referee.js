@@ -336,11 +336,8 @@ PB.referee = {
           <p class="muted" style="margin:0 0 12px;">Chọn quyền <strong>Bóng</strong> hoặc quyền <strong>Sân</strong>. Đội còn lại sẽ chọn phần còn lại.</p>
 
           <div style="text-align:left;margin-bottom:10px;">
-            <div class="muted" style="font-weight:700;margin-bottom:6px;">1. Chọn quyền Bóng:</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <button class="btn btn-primary" onclick="PB.referee.pickTossStep1('ball','serve')">Giao bóng trước</button>
-              <button class="btn btn-secondary" onclick="PB.referee.pickTossStep1('ball','receive')">Đỡ bóng trước</button>
-            </div>
+            <div class="muted" style="font-weight:700;margin-bottom:6px;">1. Chọn quyền Giao bóng:</div>
+            <button class="btn btn-primary" style="width:100%;" onclick="PB.referee.pickTossStep1('ball','serve')">Giao bóng trước</button>
           </div>
 
           <div style="text-align:left;">
@@ -365,17 +362,16 @@ PB.referee = {
         <div class="toss-step-badge" style="background:var(--emerald-soft);color:var(--emerald);">Bước 3/3 • Đội còn lại chọn phần còn lại</div>
         <div class="toss-summary-pill">${summaryText}</div>
         <div style="font-weight:800;font-size:1rem;margin-bottom:10px;">
-          Mời <span style="color:var(--emerald);">${PB.app.escape(loseName)}</span> chọn ${st.firstCategory === "ball" ? "Sân thi đấu" : "quyền Bóng"}:
+          Mời <span style="color:var(--emerald);">${PB.app.escape(loseName)}</span> chọn ${st.firstCategory === "ball" ? "Sân thi đấu" : "quyền Giao bóng"}:
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          ${st.firstCategory === "ball" ? `
+        ${st.firstCategory === "ball" ? `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <button class="btn btn-success" onclick="PB.referee.pickTossStep2('left')">Chọn Sân Trái</button>
             <button class="btn btn-success" onclick="PB.referee.pickTossStep2('right')">Chọn Sân Phải</button>
-          ` : `
-            <button class="btn btn-success" onclick="PB.referee.pickTossStep2('serve')">Giao bóng trước</button>
-            <button class="btn btn-success" onclick="PB.referee.pickTossStep2('receive')">Đỡ bóng trước</button>
-          `}
-        </div>
+          </div>
+        ` : `
+          <button class="btn btn-success" style="width:100%;" onclick="PB.referee.pickTossStep2('serve')">Giao bóng trước</button>
+        `}
       </div>
     `;
   },

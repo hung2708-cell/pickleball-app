@@ -6,66 +6,91 @@
   <title>Bính Dần Pickleball — Quản Lý Giải Đấu</title>
   <link rel="icon" type="image/png" href="logo.png" />
   <link rel="apple-touch-icon" href="logo.png" />
-  <meta name="theme-color" content="#1c120c" />
+  <meta name="theme-color" content="#111827" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <!-- Firebase Compat SDK (Chạy tốt trên GitHub Pages & mở trực tiếp không cần build) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
-  <!-- TOP HEADER -->
+  <!-- TOP HEADER (SportConnect Dark Sports Header) -->
   <header class="topbar">
-    <div class="topbar-left">
-      <div class="brand-logo"><img src="logo.png" alt="Bính Dần Pickleball" /></div>
-      <div>
-        <h1 id="headerTournamentName">Giải Pickleball Phong Trào</h1>
-        <div class="topbar-meta">
-          <span id="syncBadge" class="badge badge-local">Chế độ Offline (Local)</span>
-          <span id="ruleSummaryBadge" class="badge badge-info">Đôi • Side-out • 11 điểm</span>
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <div class="brand-logo">
+          <img src="logo.png" alt="Bính Dần Pickleball" />
+        </div>
+        <div class="brand-info">
+          <h1 id="headerTournamentName">Giải Pickleball CLB Bính Dần 1986</h1>
+          <div class="topbar-meta">
+            <span id="syncBadge" class="chip chip-local">Đang kết nối...</span>
+            <span id="ruleSummaryBadge" class="chip chip-rule">Đôi • Side-out • 11đ</span>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="topbar-right">
-      <span id="roleBadge" class="role-pill role-viewer">Khán giả</span>
-      <button id="btnAuth" class="btn btn-sm btn-outline" onclick="PB.app.openAuthModal()">Đăng nhập</button>
+      <div class="topbar-right">
+        <span id="roleBadge" class="role-pill role-viewer">Khán giả</span>
+        <button id="btnAuth" class="btn btn-sm btn-header-auth" onclick="PB.app.openAuthModal()">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <span>Đăng nhập</span>
+        </button>
+      </div>
     </div>
   </header>
 
-  <!-- NAVIGATION TABS (Desktop: Glass Bar | Mobile: iOS 27 Floating Liquid Glass Tab Bar) -->
+  <!-- NAVIGATION (Desktop: Clean Top Tabs | Mobile: Floating iOS Bottom Bar) -->
   <nav class="main-nav" aria-label="Điều hướng chính">
-    <button class="nav-btn active" data-tab="live" onclick="PB.app.switchTab('live')">
-      <span class="nav-ico">📡</span><span class="nav-lbl">Trực tiếp</span>
-    </button>
-    <button class="nav-btn" data-tab="standings" onclick="PB.app.switchTab('standings')">
-      <span class="nav-ico">🏆</span><span class="nav-lbl">Bảng & Nhánh</span>
-    </button>
-    <button class="nav-btn" data-tab="referee" onclick="PB.app.switchTab('referee')">
-      <span class="nav-ico">⚖️</span><span class="nav-lbl">Trọng tài</span>
-    </button>
-    <button class="nav-btn" data-tab="admin" onclick="PB.app.switchTab('admin')">
-      <span class="nav-ico">⚙️</span><span class="nav-lbl">Quản lý</span>
-    </button>
+    <div class="main-nav-inner">
+      <button class="nav-btn active" data-tab="live" onclick="PB.app.switchTab('live')">
+        <svg class="nav-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+        <span class="nav-lbl">Trực tiếp</span>
+      </button>
+      <button class="nav-btn" data-tab="standings" onclick="PB.app.switchTab('standings')">
+        <svg class="nav-svg" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        <span class="nav-lbl">Bảng & Nhánh</span>
+      </button>
+      <button class="nav-btn" data-tab="referee" onclick="PB.app.switchTab('referee')">
+        <svg class="nav-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+        <span class="nav-lbl">Trọng tài</span>
+      </button>
+      <button class="nav-btn" data-tab="admin" onclick="PB.app.switchTab('admin')">
+        <svg class="nav-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="nav-lbl">Quản lý</span>
+      </button>
+    </div>
   </nav>
 
   <!-- MAIN CONTENT -->
   <main class="container">
     <!-- TAB 1: LIVE & VIEWER -->
     <section id="tab-live" class="tab-panel active">
+      <!-- Tournament Stats Strip (SportConnect Style) -->
+      <div id="tournamentStatsStrip" class="stats-strip"></div>
+
       <div class="toolbar-row">
         <div class="search-box">
-          <input type="text" id="playerSearchInput" placeholder="🔍 Tìm tên VĐV / Đội để xem lịch thi đấu..." oninput="PB.viewer.renderLive()" />
+          <svg class="search-ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="playerSearchInput" class="input-search" placeholder="Tìm tên VĐV, cặp đấu hoặc trình độ..." oninput="PB.viewer.renderLive()" />
         </div>
         <div class="toolbar-actions">
-          <button class="btn btn-sm btn-secondary" onclick="PB.viewer.openQrModal()">📱 Mã QR Khán giả</button>
+          <button class="btn btn-sm btn-secondary" onclick="PB.viewer.openQrModal()">
+            <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v3h-3M14 20h6"/></svg>
+            <span>Mã QR</span>
+          </button>
         </div>
       </div>
 
       <div id="playerSearchResults" class="card hidden"></div>
 
       <div class="section-header">
-        <h2>Đang thi đấu trên sân</h2>
+        <div class="section-title-wrap">
+          <span class="live-dot-indicator"></span>
+          <h2>Đang thi đấu trên sân</h2>
+        </div>
         <span class="muted" id="liveCountLabel">0 trận đang đánh</span>
       </div>
       <div id="liveCourtsGrid" class="courts-grid"></div>
@@ -85,10 +110,9 @@
     <!-- TAB 2: STANDINGS & BRACKET -->
     <section id="tab-standings" class="tab-panel">
       <div class="subtabs">
-        <button class="subtab-btn active" id="subtabGroupsBtn" onclick="PB.viewer.switchStandingView('groups')">Bảng xếp hạng vòng bảng</button>
-        <button class="subtab-btn" id="subtabBracketBtn" onclick="PB.viewer.switchStandingView('bracket')">Sơ đồ loại trực tiếp</button>
+        <button class="subtab-btn active" id="subtabGroupsBtn" onclick="PB.viewer.switchStandingView('groups')">Bảng xếp hạng</button>
+        <button class="subtab-btn" id="subtabBracketBtn" onclick="PB.viewer.switchStandingView('bracket')">Sơ đồ nhánh đấu</button>
       </div>
-
       <div id="standingsGroupsView"></div>
       <div id="standingsBracketView" class="hidden"></div>
     </section>
@@ -96,26 +120,25 @@
     <!-- TAB 3: REFEREE -->
     <section id="tab-referee" class="tab-panel">
       <div id="refereeLockedView" class="lock-card">
-        <div class="lock-icon">🔒</div>
+        <div class="lock-icon-box">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
         <h3>Khu vực Trọng tài</h3>
-        <p class="muted">Vui lòng đăng nhập bằng <strong>Mật khẩu Trọng tài</strong> (hoặc Quản lý) để chấm điểm trận đấu.</p>
-        <button class="btn btn-primary" onclick="PB.app.openAuthModal('referee')">Đăng nhập Trọng tài</button>
+        <p class="muted">Đăng nhập bằng <strong>Mật khẩu Trọng tài</strong> (hoặc Quản lý) để mở bàn chấm điểm trực tiếp.</p>
+        <button class="btn btn-primary mt-12" onclick="PB.app.openAuthModal('referee')">Đăng nhập Trọng tài</button>
       </div>
 
       <div id="refereeContent" class="hidden">
-        <!-- Match selector view -->
         <div id="refMatchListView">
           <div class="toolbar-row">
             <div class="court-filter-wrap">
-              <label for="refCourtFilter"><strong>Lọc theo sân:</strong></label>
+              <label for="refCourtFilter"><strong>Khóa theo sân:</strong></label>
               <select id="refCourtFilter" class="input-sm" onchange="PB.referee.renderList()"></select>
             </div>
             <span class="muted" id="refMatchCount"></span>
           </div>
           <div id="refMatchesContainer" class="match-list"></div>
         </div>
-
-        <!-- Active scoring console -->
         <div id="refConsoleView" class="hidden"></div>
       </div>
     </section>
@@ -123,19 +146,20 @@
     <!-- TAB 4: ADMIN -->
     <section id="tab-admin" class="tab-panel">
       <div id="adminLockedView" class="lock-card">
-        <div class="lock-icon">🔐</div>
-        <h3>Khu vực Ban Tổ Chức (Quản lý)</h3>
-        <p class="muted">Vui lòng đăng nhập bằng <strong>Mật khẩu Quản lý</strong> để cấu hình giải, chia bảng và điều phối sân.</p>
-        <button class="btn btn-primary" onclick="PB.app.openAuthModal('admin')">Đăng nhập Quản lý</button>
+        <div class="lock-icon-box lock-admin">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Khu vực Ban Tổ Chức</h3>
+        <p class="muted">Đăng nhập bằng <strong>Mật khẩu Quản lý</strong> để thêm VĐV, chia bảng, xếp sân và cấu hình điều lệ.</p>
+        <button class="btn btn-primary mt-12" onclick="PB.app.openAuthModal('admin')">Đăng nhập Quản lý</button>
       </div>
 
       <div id="adminContent" class="hidden">
         <div class="subtabs">
-          <button class="subtab-btn active" data-admintab="teams" onclick="PB.admin.switchSubTab('teams')">👥 VĐV & Chia bảng</button>
-          <button class="subtab-btn" data-admintab="schedule" onclick="PB.admin.switchSubTab('schedule')">📅 Lịch & Xếp sân</button>
-          <button class="subtab-btn" data-admintab="settings" onclick="PB.admin.switchSubTab('settings')">⚙️ Điều lệ & Mật khẩu</button>
+          <button class="subtab-btn active" data-admintab="teams" onclick="PB.admin.switchSubTab('teams')">VĐV & Chia bảng</button>
+          <button class="subtab-btn" data-admintab="schedule" onclick="PB.admin.switchSubTab('schedule')">Lịch & Xếp sân</button>
+          <button class="subtab-btn" data-admintab="settings" onclick="PB.admin.switchSubTab('settings')">Điều lệ & Bảo mật</button>
         </div>
-
         <div id="admin-sub-teams"></div>
         <div id="admin-sub-schedule" class="hidden"></div>
         <div id="admin-sub-settings" class="hidden"></div>
@@ -153,27 +177,27 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Chọn vai trò</label>
+          <label>Vai trò truy cập</label>
           <select id="authRoleSelect" class="input">
-            <option value="referee">⚖️ Trọng tài</option>
-            <option value="admin">⚙️ Quản lý (BTC)</option>
+            <option value="referee">Trọng tài chấm điểm</option>
+            <option value="admin">Ban Tổ Chức (Quản lý)</option>
           </select>
         </div>
         <div class="form-group">
           <label>Mật khẩu</label>
           <input type="password" id="authPasswordInput" class="input" placeholder="Nhập mật khẩu..." onkeydown="if(event.key==='Enter') PB.app.submitLogin()" />
         </div>
-        <p class="hint-text">Mặc định ban đầu: Trọng tài <code>tt123</code> • Quản lý <code>admin123</code></p>
+        <p class="hint-text">Mặc định: Trọng tài <code>tt123</code> • Quản lý <code>admin123</code></p>
         <div id="authErrorMsg" class="error-text hidden"></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="PB.app.closeModal('authModal')">Hủy</button>
-        <button class="btn btn-primary" onclick="PB.app.submitLogin()">Xác nhận</button>
+        <button class="btn btn-primary" onclick="PB.app.submitLogin()">Đăng nhập</button>
       </div>
     </div>
   </div>
 
-  <!-- GENERIC INFO / LOG / QR MODAL -->
+  <!-- INFO / LOG / QR MODAL -->
   <div id="infoModal" class="modal hidden">
     <div class="modal-backdrop" onclick="PB.app.closeModal('infoModal')"></div>
     <div class="modal-card modal-lg">
@@ -188,13 +212,13 @@
     </div>
   </div>
 
-  <!-- FULLSCREEN TV SCOREBOARD OVERLAY -->
+  <!-- TV SCOREBOARD OVERLAY -->
   <div id="tvOverlay" class="tv-overlay hidden"></div>
 
-  <!-- TOAST CONTAINER -->
+  <!-- TOAST -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- MODULAR SCRIPTS (Đúng thứ tự phụ thuộc) -->
+  <!-- MODULAR SCRIPTS -->
   <script src="js/config.js"></script>
   <script src="js/state.js"></script>
   <script src="js/rules.js"></script>

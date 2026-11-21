@@ -1611,3 +1611,16 @@ body.ref-scoring-mode .ref-tools-grid .btn {
   color: var(--emerald);
   border-color: #a7f3d0;
 }
+/* v26: Live court action bar (Trọng tài & Chi tiết 2 bên) */
+.court-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f3f4f6;
+}
+.court-card-actions .btn {
+  min-width: 104px;
+}

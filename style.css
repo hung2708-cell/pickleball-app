@@ -915,3 +915,310 @@ table.data-table tr.qualify-b td:first-child { border-left: 3px solid var(--gold
     padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important;
   }
 }
+/* =========================================================
+   v9: LOCKED FULL-FRAME REFEREE SCREEN & UNIFIED iOS 27 POPUPS
+   ========================================================= */
+.ios27-sheet-lg {
+  max-width: 460px !important;
+}
+.ios27-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 18px 8px;
+}
+.ios27-modal-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.ios27-close-circle {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(17, 24, 39, 0.08);
+  color: var(--text-2);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* iOS 27 Timer Ring Popup */
+.ios27-timer-ring-wrap {
+  position: relative;
+  width: 152px; height: 152px;
+  margin: 4px auto 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.ios27-timer-svg {
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.ios27-timer-track {
+  fill: none;
+  stroke: rgba(17, 24, 39, 0.08);
+  stroke-width: 10;
+}
+.ios27-timer-bar {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.35s linear;
+}
+.ios27-timer-clock {
+  position: absolute;
+  font-size: 2.1rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* iOS 27 Action Picker List */
+.ios27-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 16px 8px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.ios27-picker-item {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 15px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(17, 24, 39, 0.08);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.08s, background 0.15s;
+}
+.ios27-picker-item:active { transform: scale(0.98); }
+.ios27-picker-item.active {
+  background: var(--primary-soft);
+  border-color: #fb923c;
+  color: var(--primary);
+}
+.ios27-picker-check {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; flex-shrink: 0;
+}
+.ios27-picker-item.active .ios27-picker-check {
+  background: var(--primary); border-color: var(--primary); color: #fff;
+}
+
+.ref-sub-pill-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid #fdba74;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  max-width: 190px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================================================
+   KHÓA KHUNG MÀN HÌNH TRỌNG TÀI (FIT 100% TRONG 1 MÀN HÌNH)
+   - Khi đang mở bàn chấm điểm (body.ref-scoring-mode):
+     Ẩn Topbar & Bottom Tab Bar để giải phóng 100% diện tích,
+     khóa toàn bộ bàn chấm điểm nằm gọn trong khung 100dvh.
+   ========================================================= */
+body.ref-scoring-mode {
+  overflow: hidden;
+  height: 100dvh;
+  padding-bottom: 0 !important;
+  background: #e5e7eb;
+}
+body.ref-scoring-mode .topbar,
+body.ref-scoring-mode .main-nav {
+  display: none !important;
+}
+body.ref-scoring-mode .container {
+  max-width: 1080px;
+  height: 100dvh;
+  padding: calc(6px + env(safe-area-inset-top)) 8px calc(6px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+body.ref-scoring-mode #tab-referee,
+body.ref-scoring-mode #refereeContent,
+body.ref-scoring-mode #refConsoleView {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+body.ref-scoring-mode .ref-console {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 20px;
+  overflow: hidden;
+  gap: 6px;
+}
+body.ref-scoring-mode .ref-topbar {
+  margin-bottom: 0;
+  padding-bottom: 6px;
+  flex-shrink: 0;
+  gap: 6px;
+}
+body.ref-scoring-mode .callout-banner {
+  margin-bottom: 0;
+  padding: 6px 10px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+body.ref-scoring-mode .callout-label {
+  font-size: 0.68rem;
+  text-align: left;
+}
+body.ref-scoring-mode .callout-score {
+  font-size: clamp(1.35rem, 5vw, 1.85rem);
+  line-height: 1;
+  white-space: nowrap;
+}
+body.ref-scoring-mode .switch-alert {
+  margin-bottom: 0;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  flex-shrink: 0;
+}
+body.ref-scoring-mode .ref-body-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+}
+body.ref-scoring-mode .ref-court-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+body.ref-scoring-mode .pb-court-2d-wrap {
+  margin-bottom: 0;
+  padding: 7px 8px;
+  border-radius: 14px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+body.ref-scoring-mode .pb-court-2d-header {
+  margin-bottom: 5px;
+  font-size: 0.68rem;
+}
+body.ref-scoring-mode .pb-court-svg-box {
+  width: 100%;
+  max-height: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+body.ref-scoring-mode .pb-court-svg {
+  max-height: 100%;
+  width: auto;
+  max-width: 100%;
+}
+body.ref-scoring-mode .pb-court-2d-legend {
+  margin-top: 4px;
+  font-size: 0.66rem;
+}
+
+body.ref-scoring-mode .ref-controls-pane {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+body.ref-scoring-mode .ref-courts-split {
+  margin-bottom: 0;
+  gap: 8px;
+}
+body.ref-scoring-mode .ref-side {
+  padding: 8px 7px;
+  border-radius: 14px;
+}
+body.ref-scoring-mode .ref-side-name {
+  min-height: 24px;
+  font-size: clamp(0.8rem, 2.5vw, 0.94rem);
+  line-height: 1.2;
+}
+body.ref-scoring-mode .ref-serve-badge {
+  margin-bottom: 2px;
+  padding: 2px 8px;
+  font-size: 0.66rem;
+}
+body.ref-scoring-mode .ref-big-score {
+  font-size: clamp(2.1rem, 8vw, 3.1rem);
+  margin: 2px 0;
+}
+body.ref-scoring-mode .ref-action-btn {
+  min-height: 46px;
+  padding: 10px 6px;
+  margin-top: 4px;
+  font-size: clamp(0.86rem, 3vw, 1rem) !important;
+  border-radius: 11px;
+}
+body.ref-scoring-mode .ref-side-subbtns {
+  display: flex; gap: 4px; margin-top: 5px;
+}
+body.ref-scoring-mode .ref-side-subbtns .btn-sm {
+  padding: 5px 4px; font-size: 0.72rem; flex: 1;
+}
+body.ref-scoring-mode .ref-tools-grid {
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+body.ref-scoring-mode .ref-tools-grid .btn {
+  padding: 8px 6px;
+  font-size: 0.76rem;
+  border-radius: 10px;
+}
+
+/* Máy tính hoặc Điện thoại xoay NGANG khi đang khóa khung Trọng tài */
+@media (min-width: 820px), (orientation: landscape) and (max-height: 540px) {
+  body.ref-scoring-mode .ref-body-layout {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+  body.ref-scoring-mode .ref-controls-pane {
+    justify-content: space-between;
+  }
+  body.ref-scoring-mode .ref-side {
+    padding: 10px 8px;
+  }
+  body.ref-scoring-mode .ref-big-score {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+  }
+}

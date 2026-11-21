@@ -198,17 +198,58 @@
     </div>
   </div>
 
-  <!-- INFO / LOG / QR MODAL -->
-  <div id="infoModal" class="modal hidden">
+  <!-- INFO / LOG / QR / TOSS MODAL (Thống nhất chuẩn iOS 27 Liquid Glass) -->
+  <div id="infoModal" class="modal modal-ios27 hidden">
     <div class="modal-backdrop" onclick="PB.app.closeModal('infoModal')"></div>
-    <div class="modal-card modal-lg">
-      <div class="modal-header">
+    <div class="modal-card ios27-sheet ios27-sheet-lg">
+      <div class="ios27-grabber"></div>
+      <div class="ios27-modal-head">
         <h3 id="infoModalTitle">Thông tin</h3>
-        <button class="icon-btn" onclick="PB.app.closeModal('infoModal')">✕</button>
+        <button class="ios27-close-circle" onclick="PB.app.closeModal('infoModal')" aria-label="Đóng">✕</button>
       </div>
-      <div class="modal-body" id="infoModalBody"></div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" onclick="PB.app.closeModal('infoModal')">Đóng</button>
+      <div class="modal-body" id="infoModalBody" style="padding:10px 18px 14px;"></div>
+      <div class="ios27-sheet-actions" style="padding-top:4px;">
+        <button class="btn ios27-btn-cancel" onclick="PB.app.closeModal('infoModal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- iOS 27 TIMEOUT & MEDICAL TIMER POPUP -->
+  <div id="iosTimerModal" class="modal modal-ios27 hidden" style="z-index:260;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card ios27-sheet ios27-alert-sheet">
+      <div class="ios27-grabber"></div>
+      <div class="ios27-auth-head" style="padding-bottom:4px;">
+        <div id="iosTimerBadge" class="toss-step-badge" style="margin-bottom:6px;">TIMEOUT</div>
+        <h3 id="iosTimerTitle" style="margin:0;">Hội ý</h3>
+      </div>
+      <div class="modal-body text-center" style="padding:10px 18px 14px;">
+        <div class="ios27-timer-ring-wrap">
+          <svg class="ios27-timer-svg" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="60" class="ios27-timer-track" />
+            <circle id="iosTimerProgress" cx="70" cy="70" r="60" class="ios27-timer-bar" stroke-dasharray="376.99" stroke-dashoffset="0" />
+          </svg>
+          <div id="iosTimerClock" class="ios27-timer-clock">01:00</div>
+        </div>
+        <p id="iosTimerSub" class="muted" style="margin:6px 0 0;">Đang đếm ngược thời gian nghỉ...</p>
+      </div>
+      <div class="ios27-sheet-actions">
+        <button class="btn ios27-btn-primary" onclick="PB.referee.stopTimer()">Tiếp tục trận đấu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- iOS 27 ACTION PICKER (Chọn nhanh nội dung thi đấu thay <select> mặc định) -->
+  <div id="iosPickerModal" class="modal modal-ios27 hidden" style="z-index:255;">
+    <div class="modal-backdrop" onclick="PB.app.closeModal('iosPickerModal')"></div>
+    <div class="modal-card ios27-sheet ios27-alert-sheet">
+      <div class="ios27-grabber"></div>
+      <div class="ios27-auth-head" style="padding-bottom:6px;">
+        <h3 id="iosPickerTitle" style="margin-top:2px;">Chọn nội dung thi đấu</h3>
+      </div>
+      <div id="iosPickerList" class="ios27-picker-list"></div>
+      <div class="ios27-sheet-actions" style="padding-top:8px;">
+        <button class="btn ios27-btn-cancel" onclick="PB.app.closeModal('iosPickerModal')">Đóng</button>
       </div>
     </div>
   </div>

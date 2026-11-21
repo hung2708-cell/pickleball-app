@@ -132,7 +132,14 @@ PB.referee = {
     const scoreLeft = leftSide === "A" ? scoreA : scoreB;
     const scoreRight = rightSide === "A" ? scoreA : scoreB;
     const serverScore = serverSide === "A" ? scoreA : scoreB;
-    const isServerEven = (serverScore % 2) === 0;
+    const isInitialZeroTwo = (scoreA === 0 && scoreB === 0 && serverNum === 2);
+    // Đúng luật Pickleball:
+    // - Lượt đầu trận 0-0-2 hoặc khi đang là Tay 1: phát từ ô Phải nếu điểm chẵn, ô Trái nếu điểm lẻ.
+    // - Khi mất giao chuyển từ Tay 1 -> Tay 2: điểm không đổi, 2 VĐV giữ nguyên vị trí,
+    //   nên quyền phát bóng nhảy sang VĐV đồng đội ở ô ngược lại!
+    const isServeFromRightBox = (serverNum === 2 && !isInitialZeroTwo)
+      ? ((serverScore % 2) !== 0)
+      : ((serverScore % 2) === 0);
     const serverOnLeft = (serverSide === leftSide);
 
     const pLeft = this._splitTwoPlayers(leftPlayers, leftName);   // [Tay 1, Tay 2]
@@ -154,7 +161,7 @@ PB.referee = {
     let arrow = { x1: 0, y1: 0, x2: 0, y2: 0 };
 
     if (serverOnLeft) {
-      if (isServerEven) {
+      if (isServeFromRightBox) {
         lBotState = "serve"; rTopState = "receive";
         arrow = { x1: 178, y1: 142, x2: 302, y2: 88 };
       } else {
@@ -162,7 +169,7 @@ PB.referee = {
         arrow = { x1: 178, y1: 88, x2: 302, y2: 142 };
       }
     } else {
-      if (isServerEven) {
+      if (isServeFromRightBox) {
         rTopState = "serve"; lBotState = "receive";
         arrow = { x1: 302, y1: 88, x2: 178, y2: 142 };
       } else {
@@ -176,7 +183,7 @@ PB.referee = {
     const renderPlayerBox = (x, y, state, player) => {
       const cx = x + 75;
       const cy = y + 46;
-      const boxFill = state === "serve" ? "rgba(234, 88, 12, 0.25)" : state === "receive" ? "rgba(5, 150, 105, 0.25)" : "#1d4ed8";
+      const boxFill = "#1d4ed8";
 
       let dotMarkup = `
         <circle cx="${cx}" cy="${cy - 6}" r="9" fill="#e2e8f0" stroke="#0f172a" stroke-width="2" />
@@ -826,11 +833,11 @@ PB.referee = {
               ${renderSide(rightSide)}
             </div>
             <div class="ref-tools-grid">
-              <button class="btn btn-warning" onclick="PB.referee.teamSubSideOut()" ${sm.status === "finished" ? "disabled" : ""}>Lỗi giao bóng</button>
               <button class="btn btn-secondary" onclick="PB.referee.teamSubUndo()" ${!sm.history?.length ? "disabled" : ""}>Hoàn tác</button>
               <button class="btn btn-secondary" onclick="PB.referee.openTossModal()">Bốc thăm</button>
               <button class="btn btn-secondary" onclick="PB.referee.teamSubSwap()">Đảo bên sân</button>
               <button class="btn btn-secondary" onclick="PB.referee.startMedicalTimer()">Y tế (15p)</button>
+              <button class="btn btn-secondary" onclick="PB.referee.forfeitSubPrompt(${subIdx})" ${sm.status === "finished" ? "disabled" : ""}>WO 15-0</button>
               <button class="btn btn-success" onclick="PB.referee.teamSubFinishManual()" ${sm.status === "finished" ? "disabled" : ""}>Chốt trận</button>
             </div>
           </div>
@@ -891,7 +898,7 @@ PB.referee = {
     sm.timeouts[side] -= 1;
     sm.logs.unshift(`[${PB.rules.nowTime()}] Đội ${side} xin Timeout (60s)`);
     PB.state.save();
-    this.startTimer(60, `Timeout — Đội ${side}`);
+    setTimeout(() => this.startTimer(60, `Timeout — Đội ${side}`), 10);
   },
 
   teamSubMedicalSub(side) {
@@ -1162,12 +1169,12 @@ PB.referee = {
               : `<span class="muted" style="font-size:0.78rem;">Đỡ giao bóng</span>`}
           </div>
           <div class="ref-big-score">${score}</div>
-          <div class="muted" style="margin-bottom:8px;">Set: <strong>${sets}</strong> • TO: <strong>${toLeft}</strong></div>
+          <div class="muted" style="margin-bottom:8px;">Set: <strong>${sets}</strong></div>
           ${canPoint
             ? `<button class="ref-action-btn ${isA ? "btn-point-a" : "btn-point-b"}" onclick="PB.referee.point('${sideKey}')">+1 ĐIỂM</button>`
             : `<button class="ref-action-btn btn-sideout" onclick="PB.referee.sideOut()">ĐỔI GIAO / LỖI</button>`}
           <div class="ref-side-subbtns">
-            <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.timeout('${sideKey}')" ${toLeft <= 0 ? "disabled" : ""}>TO (${toLeft})</button>
+            <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.timeout('${sideKey}')" ${toLeft <= 0 ? "disabled" : ""}>Timeout (${toLeft})</button>
             <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.techFoul('${sideKey}')">Lỗi KT</button>
           </div>
         </div>
@@ -1209,13 +1216,12 @@ PB.referee = {
               ${renderSide(rightSide)}
             </div>
             <div class="ref-tools-grid">
-          <button class="btn btn-warning" onclick="PB.referee.sideOut()">Lỗi giao bóng</button>
-          <button class="btn btn-secondary" onclick="PB.referee.undo()" ${!m.history?.length ? "disabled" : ""}>Hoàn tác</button>
-          <button class="btn btn-secondary" onclick="PB.referee.openTossModal()">Bốc thăm</button>
-          <button class="btn btn-secondary" onclick="PB.referee.swapSides()">Đảo bên sân</button>
-          <button class="btn btn-secondary" onclick="PB.referee.startMedicalTimer()">Y tế (15p)</button>
-          <button class="btn btn-secondary" onclick="PB.referee.walkoverPrompt()">Bỏ cuộc (WO)</button>
-          <button class="btn btn-success" onclick="PB.referee.finishManual()">Chốt kết thúc</button>
+              <button class="btn btn-secondary" onclick="PB.referee.undo()" ${!m.history?.length ? "disabled" : ""}>Hoàn tác</button>
+              <button class="btn btn-secondary" onclick="PB.referee.openTossModal()">Bốc thăm</button>
+              <button class="btn btn-secondary" onclick="PB.referee.swapSides()">Đảo bên sân</button>
+              <button class="btn btn-secondary" onclick="PB.referee.startMedicalTimer()">Y tế (15p)</button>
+              <button class="btn btn-secondary" onclick="PB.referee.walkoverPrompt()">Bỏ cuộc (WO)</button>
+              <button class="btn btn-success" onclick="PB.referee.finishManual()">Chốt kết thúc</button>
             </div>
           </div>
         </div>
@@ -1245,7 +1251,7 @@ PB.referee = {
   swapSides() { const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId); if (m) { m.swapped = !m.swapped; PB.state.save(); } },
   timeout(side) {
     const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
-    if (m && PB.rules.useTimeout(m, side)) { PB.state.save(); this.startTimer(60, `Hội ý Đội ${side}`); }
+    if (m && PB.rules.useTimeout(m, side)) { PB.state.save(); setTimeout(() => this.startTimer(60, `Timeout — ${PB.state.getTeamName(side === "A" ? m.teamA : m.teamB)}`), 10); }
   },
   startMedicalTimer() { this.startTimer(15 * 60, "Medical Timeout (15p)"); },
   _updateTimerModalDom() {

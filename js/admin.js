@@ -52,7 +52,7 @@ PB.admin = {
             <option value="4">Chia đều 4 bảng (A, B, C, D)</option>
             <option value="1">Gộp 1 bảng (A)</option>
           </select>
-          <button class="btn btn-warning" onclick="PB.admin.autoDrawGroups()">🎲 Bốc thăm chia bảng</button>
+          <button class="btn btn-warning" onclick="PB.admin.autoDrawGroups()">Bốc thăm chia bảng</button>
         </div>
       </div>
 
@@ -106,9 +106,9 @@ PB.admin = {
           <span class="badge badge-cloud">Sân trống: ${freeCourts.length ? freeCourts.join(", ") : "Đang kín sân"}</span>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="PB.admin.generateGroupSchedule()">📅 Tạo lịch vòng bảng</button>
-          <button class="btn btn-success" onclick="PB.admin.generateKnockout()">🏆 Chốt vòng bảng → Đẩy nhánh</button>
-          <button class="btn btn-secondary" onclick="PB.admin.exportCsv()">📥 Xuất kết quả Excel (CSV)</button>
+          <button class="btn btn-primary" onclick="PB.admin.generateGroupSchedule()">Tạo lịch vòng bảng</button>
+          <button class="btn btn-success" onclick="PB.admin.generateKnockout()">Chốt vòng bảng → Đẩy nhánh</button>
+          <button class="btn btn-secondary" onclick="PB.admin.exportCsv()">Xuất kết quả Excel (CSV)</button>
         </div>
       </div>
 
@@ -127,7 +127,7 @@ PB.admin = {
                   <div class="match-meta">
                     <strong>${PB.app.escape(m.roundName)}</strong>
                     <span>• Trạng thái: ${m.status}</span>
-                    ${conflict ? '<span class="badge badge-live">⚠️ Có VĐV đang đánh sân khác</span>' : ""}
+                    ${conflict ? '<span class="badge badge-live">Có VĐV đang đánh sân khác</span>' : ""}
                   </div>
                   <div class="match-teams">
                     ${PB.app.escape(PB.state.getTeamName(m.teamA))} <span class="muted">vs</span> ${PB.app.escape(PB.state.getTeamName(m.teamB))}
@@ -136,7 +136,7 @@ PB.admin = {
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                   <select class="input-sm" onchange="PB.admin.assignCourt('${m.id}', this.value)">${courtOpts}</select>
-                  <button class="btn btn-sm btn-secondary" onclick="PB.admin.editScorePrompt('${m.id}')">✏️ Sửa điểm</button>
+                  <button class="btn btn-sm btn-secondary" onclick="PB.admin.editScorePrompt('${m.id}')">Sửa điểm</button>
                 </div>
               </div>
             `;
@@ -209,22 +209,23 @@ PB.admin = {
             </select>
           </div>
         </div>
-        <button class="btn btn-primary mt-12" onclick="PB.admin.saveSettings()">💾 Lưu điều lệ</button>
+        <button class="btn btn-primary mt-12" onclick="PB.admin.saveSettings()">Lưu điều lệ</button>
       </div>
 
       <div class="card">
-        <h3>Quản lý Mật khẩu phân quyền</h3>
+        <h3>Đổi Mật khẩu phân quyền</h3>
+        <p class="muted" style="margin-top:0;">Vì lý do bảo mật, mật khẩu hiện tại được ẩn. Nhập mật khẩu mới vào ô cần đổi rồi bấm Lưu.</p>
         <div class="form-grid">
           <div class="form-group">
-            <label>Mật khẩu Trọng tài</label>
-            <input type="text" id="cfgRefPass" class="input" value="${PB.app.escape(d.passwords.referee)}" />
+            <label>Mật khẩu Trọng tài mới</label>
+            <input type="password" id="cfgRefPass" class="input" placeholder="Để trống nếu giữ nguyên..." autocomplete="new-password" />
           </div>
           <div class="form-group">
-            <label>Mật khẩu Quản lý (BTC)</label>
-            <input type="text" id="cfgAdminPass" class="input" value="${PB.app.escape(d.passwords.admin)}" />
+            <label>Mật khẩu Quản lý (BTC) mới</label>
+            <input type="password" id="cfgAdminPass" class="input" placeholder="Để trống nếu giữ nguyên..." autocomplete="new-password" />
           </div>
         </div>
-        <button class="btn btn-warning" onclick="PB.admin.savePasswords()">🔑 Cập nhật mật khẩu</button>
+        <button class="btn btn-warning" onclick="PB.admin.savePasswords()">Lưu mật khẩu mới</button>
       </div>
     `;
   },
@@ -262,7 +263,7 @@ PB.admin = {
     teams.forEach((t, idx) => { t.group = letters[idx % count]; });
     PB.state.data.teams = teams;
     PB.state.save();
-    PB.app.toast(`🎲 Đã bốc thăm chia đều vào ${count} bảng!`);
+    PB.app.toast(`Đã bốc thăm chia đều vào ${count} bảng!`);
   },
 
   changeTeamGroup(id, group) {
@@ -270,30 +271,30 @@ PB.admin = {
     if (t) { t.group = group; PB.state.save(); }
   },
 
-  deleteTeam(id) {
-    if (!confirm("Xóa đội này?")) return;
+  async deleteTeam(id) {
+    if (!(await PB.ui.confirm("Bạn có chắc muốn xóa đội này khỏi giải đấu?", "Xóa đội", true))) return;
     PB.state.data.teams = PB.state.data.teams.filter((x) => x.id !== id);
     PB.state.save();
   },
 
-  clearAllTeams() {
-    if (!confirm("Xóa toàn bộ danh sách đội và lịch thi đấu?")) return;
+  async clearAllTeams() {
+    if (!(await PB.ui.confirm("Toàn bộ danh sách đội và lịch thi đấu hiện tại sẽ bị xóa sạch.", "Xóa toàn bộ giải", true))) return;
     PB.state.data.teams = [];
     PB.state.data.matches = [];
     PB.state.save();
   },
 
-  loadSample(cat = "doubles") {
+  async loadSample(cat = "doubles") {
     const label = cat === "team" ? "Đồng đội (6 đội, sẵn VĐV Nam/Nữ)" : "Đôi (8 cặp)";
-    if (!confirm(`Tải dữ liệu mẫu ${label} sẽ ghi đè dữ liệu hiện tại?`)) return;
+    if (!(await PB.ui.confirm(`Tải dữ liệu mẫu ${label} sẽ ghi đè dữ liệu hiện tại.`, "Tải dữ liệu mẫu"))) return;
     PB.state.loadSampleData(cat);
     PB.app.toast(`Đã tải dữ liệu mẫu ${label}!`);
   },
-  editRosterPrompt(teamId) {
+  async editRosterPrompt(teamId) {
     const t = PB.state.getTeam(teamId);
     if (!t) return;
     const cur = (t.roster || []).map((p) => `${p.name}(${p.gender === "M" ? "Nam" : "Nữ"})`).join(", ");
-    const inp = prompt(`Nhập danh sách VĐV của [${t.name}] (cách nhau dấu phẩy, kèm giới tính):\nVí dụ: Hùng(Nam), Nam(Nam), Dương(Nữ), Hạnh(Nữ)`, cur);
+    const inp = await PB.ui.prompt(`Nhập danh sách VĐV (cách nhau dấu phẩy):\nVD: Hùng(Nam), Nam(Nam), Dương(Nữ), Hạnh(Nữ)`, cur, `Danh sách VĐV — ${t.name}`);
     if (inp === null) return;
     t.roster = inp.split(",").map((s) => s.trim()).filter(Boolean).map((s) => {
       const isF = /nữ|nu|\(f\)/i.test(s);
@@ -303,17 +304,17 @@ PB.admin = {
     PB.app.toast(`Đã cập nhật ${t.roster.length} VĐV cho ${t.name}`);
   },
 
-  generateGroupSchedule() {
+  async generateGroupSchedule() {
     if (PB.state.data.teams.length < 2) return PB.app.toast("Chưa đủ đội để tạo lịch.");
-    if (PB.state.data.matches.length && !confirm("Tạo lại lịch vòng bảng sẽ xóa các trận hiện tại?")) return;
+    if (PB.state.data.matches.length && !(await PB.ui.confirm("Tạo lại lịch vòng bảng sẽ làm mới toàn bộ lịch thi đấu hiện tại.", "Tạo lịch vòng bảng"))) return;
     PB.bracket.generateGroupMatches();
-    PB.app.toast("📅 Đã tạo lịch thi đấu vòng bảng!");
+    PB.app.toast("Đã tạo lịch thi đấu vòng bảng!");
   },
 
-  generateKnockout() {
+  async generateKnockout() {
     const res = PB.bracket.generateKnockoutFromGroups();
-    if (!res.ok) return alert(res.msg);
-    PB.app.toast(`🏆 Đã tạo ${res.count} trận vòng loại trực tiếp!`);
+    if (!res.ok) return PB.ui.alert(res.msg);
+    PB.app.toast(`Đã tạo ${res.count} trận vòng loại trực tiếp!`);
   },
 
   assignCourt(matchId, courtNum) {
@@ -325,16 +326,17 @@ PB.admin = {
     }
   },
 
-  editScorePrompt(matchId) {
+  async editScorePrompt(matchId) {
     const m = PB.state.data.matches.find((x) => x.id === matchId);
     if (!m) return;
-    const input = prompt(
-      `Nhập tỷ số mới cho:\n${PB.state.getTeamName(m.teamA)} vs ${PB.state.getTeamName(m.teamB)}\nĐịnh dạng: điểmA-điểmB (ví dụ: 11-8)`,
-      `${m.scoreA}-${m.scoreB}`
+    const input = await PB.ui.prompt(
+      `${PB.state.getTeamName(m.teamA)} vs ${PB.state.getTeamName(m.teamB)}\nNhập theo định dạng: điểmA-điểmB (VD: 11-8)`,
+      `${m.scoreA}-${m.scoreB}`,
+      "Cập nhật tỷ số thủ công"
     );
     if (!input) return;
     const parts = input.split("-").map((x) => Number(x.trim()));
-    if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return alert("Sai định dạng!");
+    if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return PB.ui.alert("Sai định dạng tỷ số (VD đúng: 11-8).");
 
     m.scoreA = parts[0];
     m.scoreB = parts[1];
@@ -343,10 +345,10 @@ PB.admin = {
     m.winner = m.scoreA >= m.scoreB ? "A" : "B";
     m.setsA = m.winner === "A" ? 1 : 0;
     m.setsB = m.winner === "B" ? 1 : 0;
-    m.logs.unshift(`[${PB.rules.nowTime()}] ✏️ BTC cập nhật thủ công tỷ số: ${m.scoreA}-${m.scoreB}`);
-    PB.bracket.propagateWinner(m);
+    m.logs.unshift(`[${PB.rules.nowTime()}] BTC cập nhật thủ công tỷ số: ${m.scoreA}-${m.scoreB}`);
+    PB.bracket.onMatchFinished(m);
     PB.state.save();
-    PB.app.toast("✏️ Đã cập nhật tỷ số thủ công!");
+    PB.app.toast("Đã cập nhật tỷ số thủ công!");
   },
 
   saveSettings() {
@@ -363,16 +365,17 @@ PB.admin = {
       knockoutMode: document.getElementById("cfgKoMode").value
     };
     PB.state.save();
-    PB.app.toast("💾 Đã lưu cấu hình điều lệ!");
+    PB.app.toast("Đã lưu cấu hình điều lệ!");
   },
 
-  savePasswords() {
+  async savePasswords() {
     const refP = document.getElementById("cfgRefPass").value.trim();
     const admP = document.getElementById("cfgAdminPass").value.trim();
-    if (!refP || !admP) return alert("Mật khẩu không được để trống!");
-    PB.state.data.passwords = { referee: refP, admin: admP };
+    if (!refP && !admP) return PB.ui.alert("Vui lòng nhập ít nhất 1 mật khẩu mới để cập nhật.");
+    if (refP) PB.state.data.passwords.referee = refP;
+    if (admP) PB.state.data.passwords.admin = admP;
     PB.state.save();
-    PB.app.toast("🔑 Đã cập nhật mật khẩu mới!");
+    PB.app.toast("Đã cập nhật mật khẩu mới!");
   },
 
   exportCsv() {

@@ -88,7 +88,7 @@ PB.viewer = {
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
                 <span class="badge badge-live">● LIVE</span>
-                <button class="btn btn-sm btn-secondary" onclick="PB.viewer.openTv('${m.id}')" title="Mở chế độ màn hình TV">📺 TV</button>
+                <button class="btn btn-sm btn-secondary" onclick="PB.viewer.openTv('${m.id}')" title="Mở chế độ màn hình TV">TV</button>
               </div>
             </div>
             <div class="score-row ${m.server === "A" ? "serving" : ""}">
@@ -158,7 +158,7 @@ PB.viewer = {
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="match-score-pill">${scoreText}</div>
-          ${m.logs && m.logs.length ? `<button class="btn btn-sm btn-secondary" onclick="PB.viewer.openMatchLog('${m.id}')">📋 Log</button>` : ""}
+          ${m.logs && m.logs.length ? `<button class="btn btn-sm btn-secondary" onclick="PB.viewer.openMatchLog('${m.id}')">Log</button>` : ""}
         </div>
       </div>
     `;
@@ -223,35 +223,66 @@ PB.viewer = {
       `).join("");
     }
 
-    // Sơ đồ nhánh loại trực tiếp
+    // Sơ đồ cây loại trực tiếp (Ghi rõ Nhất A, Nhì B, Ba A, Tư B...)
     const bracketEl = document.getElementById("standingsBracketView");
     const koMatches = PB.state.data.matches.filter((m) => m.stage !== "group");
     if (!koMatches.length) {
-      bracketEl.innerHTML = `<div class="card muted text-center">Chưa tạo nhánh loại trực tiếp. Quản lý có thể bấm "Chốt vòng bảng → Đẩy nhánh" trong mục Quản lý.</div>`;
+      bracketEl.innerHTML = `<div class="card muted text-center">Chưa có sơ đồ nhánh đấu. Hãy tạo lịch vòng bảng trong mục Quản lý.</div>`;
     } else {
-      const stages = [...new Set(koMatches.map((m) => m.stage))];
+      const stages = ["serieA", "serieB", "knockout"].filter((st) => koMatches.some((m) => m.stage === st));
       bracketEl.innerHTML = stages.map((st) => {
         const list = koMatches.filter((m) => m.stage === st);
-        const title = st === "serieA" ? "🏆 NHÁNH SERIE A" : st === "serieB" ? "🥈 NHÁNH SERIE B" : "🏆 VÒNG LOẠI TRỰC TIẾP";
+        const title = st === "serieA" ? "Nhánh Serie A (Nhất & Nhì bảng)" : st === "serieB" ? "Nhánh Serie B (Ba & Tư bảng)" : "Vòng loại trực tiếp";
+        const badgeCls = st === "serieA" ? "badge-serieA" : st === "serieB" ? "badge-serieB" : "badge-done";
+
+        // Nhóm theo vòng (roundOrder: 1=Tứ kết, 2=Bán kết, 3=Chung kết)
+        const orders = [...new Set(list.map((m) => m.roundOrder || 3))].sort((a, b) => a - b);
+        const colName = (ord) => ord === 1 ? "Tứ kết" : ord === 2 ? "Bán kết" : "Chung kết";
+
         return `
-          <div class="card">
-            <h3>${title}</h3>
-            <div class="bracket-wrap">
-              ${list.map((m) => `
-                <div class="bracket-round">
-                  <div class="bracket-round-title">${PB.app.escape(m.roundName)} ${m.court ? "(Sân " + m.court + ")" : ""}</div>
-                  <div class="bracket-match">
-                    <div class="bracket-slot ${m.winner === "A" ? "winner" : ""}">
-                      <span>${PB.app.escape(PB.state.getTeamName(m.teamA))}</span>
-                      <strong>${m.status === "pending" ? "-" : m.scoreA}</strong>
-                    </div>
-                    <div class="bracket-slot ${m.winner === "B" ? "winner" : ""}">
-                      <span>${PB.app.escape(PB.state.getTeamName(m.teamB))}</span>
-                      <strong>${m.status === "pending" ? "-" : m.scoreB}</strong>
+          <div class="bracket-tree-section">
+            <div class="bracket-tree-header">
+              <div class="bracket-tree-title">
+                <span class="badge ${badgeCls}">${st === "serieA" ? "SERIE A" : st === "serieB" ? "SERIE B" : "KNOCKOUT"}</span>
+                <span>${title}</span>
+              </div>
+              <span class="muted">Tự động cập nhật & xếp sân khi đủ đội</span>
+            </div>
+            <div class="bracket-tree">
+              ${orders.map((ord, colIdx) => {
+                const colMatches = list.filter((m) => (m.roundOrder || 3) === ord);
+                const hasNextCol = colIdx < orders.length - 1;
+                return `
+                  <div class="bt-col">
+                    <div class="bt-col-title">${colName(ord)}</div>
+                    <div class="bt-matches">
+                      ${colMatches.map((m) => {
+                        const nameA = m.teamA ? PB.state.getTeamName(m.teamA) : "Chờ xác định";
+                        const nameB = m.teamB ? PB.state.getTeamName(m.teamB) : "Chờ xác định";
+                        const statusTxt = m.status === "live" ? "Đang đánh" : m.status === "finished" ? "Xong" : (m.court ? `Sân ${m.court}` : "Chờ");
+                        return `
+                          <div class="bt-node ${m.status === "live" ? "is-live" : ""} ${hasNextCol ? "has-next" : ""}">
+                            <div class="bt-node-meta">
+                              <span>${PB.app.escape(m.roundName)}</span>
+                              <strong>${statusTxt}</strong>
+                            </div>
+                            <div class="bt-slot ${m.winner === "A" ? "winner" : ""}">
+                              ${m.labelA ? `<span class="bt-seed-tag">${PB.app.escape(m.labelA)}</span>` : ""}
+                              <span class="bt-slot-name">${PB.app.escape(nameA)}</span>
+                              <span class="bt-slot-score">${m.status === "pending" ? "-" : m.scoreA}</span>
+                            </div>
+                            <div class="bt-slot ${m.winner === "B" ? "winner" : ""}">
+                              ${m.labelB ? `<span class="bt-seed-tag">${PB.app.escape(m.labelB)}</span>` : ""}
+                              <span class="bt-slot-name">${PB.app.escape(nameB)}</span>
+                              <span class="bt-slot-score">${m.status === "pending" ? "-" : m.scoreB}</span>
+                            </div>
+                          </div>
+                        `;
+                      }).join("")}
                     </div>
                   </div>
-                </div>
-              `).join("")}
+                `;
+              }).join("")}
             </div>
           </div>
         `;

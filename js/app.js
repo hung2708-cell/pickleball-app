@@ -4,6 +4,57 @@
    ========================================================= */
 window.PB = window.PB || {};
 
+
+PB.ui = {
+  _open({ title, message, type = "confirm", defaultValue = "", okText = "Xác nhận", cancelText = "Hủy", danger = false }) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById("iosDialogModal");
+      const titleEl = document.getElementById("iosDialogTitle");
+      const msgEl = document.getElementById("iosDialogMsg");
+      const inputWrap = document.getElementById("iosDialogInputWrap");
+      const inputEl = document.getElementById("iosDialogInput");
+      const okBtn = document.getElementById("iosDialogOkBtn");
+      const cancelBtn = document.getElementById("iosDialogCancelBtn");
+      const backdrop = document.getElementById("iosDialogBackdrop");
+
+      titleEl.textContent = title || "Thông báo";
+      msgEl.textContent = message || "";
+      okBtn.textContent = okText;
+      okBtn.style.background = danger ? "linear-gradient(135deg,#ef4444,#dc2626)" : "";
+      cancelBtn.textContent = cancelText;
+      cancelBtn.classList.toggle("hidden", type === "alert");
+      inputWrap.classList.toggle("hidden", type !== "prompt");
+      inputEl.value = defaultValue || "";
+
+      const cleanup = (val) => {
+        modal.classList.add("hidden");
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
+        backdrop.onclick = null;
+        inputEl.onkeydown = null;
+        resolve(val);
+      };
+
+      okBtn.onclick = () => cleanup(type === "prompt" ? inputEl.value : true);
+      cancelBtn.onclick = () => cleanup(type === "prompt" ? null : false);
+      backdrop.onclick = () => cleanup(type === "prompt" ? null : false);
+      inputEl.onkeydown = (e) => { if (e.key === "Enter") okBtn.click(); };
+
+      modal.classList.remove("hidden");
+      if (type === "prompt") setTimeout(() => { inputEl.focus(); inputEl.select(); }, 50);
+    });
+  },
+  alert(message, title = "Thông báo") {
+    return this._open({ title, message, type: "alert", okText: "Đã hiểu" });
+  },
+  confirm(message, title = "Xác nhận", danger = false) {
+    return this._open({ title, message, type: "confirm", danger });
+  },
+  prompt(message, defaultValue = "", title = "Nhập thông tin") {
+    return this._open({ title, message, type: "prompt", defaultValue });
+  }
+};
+
 PB.app = {
   currentTab: "live",
 
@@ -74,12 +125,22 @@ PB.app = {
     this.renderAll();
   },
 
+  selectAuthRole(role) {
+    document.getElementById("authRoleSelect").value = role;
+    const btnRef = document.getElementById("segRoleReferee");
+    const btnAdm = document.getElementById("segRoleAdmin");
+    if (btnRef) btnRef.classList.toggle("active", role === "referee");
+    if (btnAdm) btnAdm.classList.toggle("active", role === "admin");
+    document.getElementById("authErrorMsg").classList.add("hidden");
+    setTimeout(() => document.getElementById("authPasswordInput")?.focus(), 40);
+  },
+
   openAuthModal(defaultRole = "referee") {
-    document.getElementById("authRoleSelect").value = defaultRole;
+    this.selectAuthRole(defaultRole);
     document.getElementById("authPasswordInput").value = "";
     document.getElementById("authErrorMsg").classList.add("hidden");
     document.getElementById("authModal").classList.remove("hidden");
-    setTimeout(() => document.getElementById("authPasswordInput").focus(), 50);
+    setTimeout(() => document.getElementById("authPasswordInput").focus(), 60);
   },
 
   submitLogin() {
@@ -87,7 +148,7 @@ PB.app = {
     const pass = document.getElementById("authPasswordInput").value;
     if (PB.auth.login(role, pass)) {
       this.closeModal("authModal");
-      this.toast(role === "admin" ? "✅ Đã đăng nhập Quản lý" : "✅ Đã đăng nhập Trọng tài");
+      this.toast(role === "admin" ? "Đã đăng nhập Quản lý" : "Đã đăng nhập Trọng tài");
       this.renderAll();
     } else {
       const err = document.getElementById("authErrorMsg");

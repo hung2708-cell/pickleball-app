@@ -14,7 +14,9 @@ window.PB = window.PB || {};
 
 PB.referee = {
   activeMatchId: null,
-  activeSubIdx: null, // null = màn hình tổng quan 4 trận | 0..3 = chấm trận con | 'db' = chấm đơn Dreambreaker
+  activeSubIdx: null,
+  lineupStep: "A",     // 'A' | 'B'
+  lineupDraft: null,   // { A: [[p1,p2],...], B: [[p1,p2],...], singlesA: "", singlesB: "" }
   timerInterval: null,
   timerSeconds: 0,
   timerLabel: "",
@@ -83,6 +85,8 @@ PB.referee = {
   openMatch(matchId) {
     this.activeMatchId = matchId;
     this.activeSubIdx = null;
+    this.lineupStep = "A";
+    this.lineupDraft = null;
     const m = PB.state.data.matches.find((x) => x.id === matchId);
     if (m && m.matchType !== "team" && m.status === "pending") {
       PB.rules.startMatch(m);
@@ -141,7 +145,7 @@ PB.referee = {
         <div class="ref-topbar">
           <button class="btn btn-sm btn-secondary" onclick="PB.referee.exitMatch()">← Danh sách trận</button>
           <div><strong>Sân ${tie.court || "?"}</strong> • ${PB.app.escape(tie.roundName)} (${isKO ? "Loại trực tiếp" : "Vòng bảng"})</div>
-          <button class="btn btn-sm btn-secondary" onclick="PB.referee.unlockLineup()">✏️ Sửa đội hình</button>
+          <button class="btn btn-sm btn-secondary" onclick="PB.referee.unlockLineup()">Sửa đội hình</button>
         </div>
 
         <div class="callout-banner">
@@ -154,9 +158,9 @@ PB.referee = {
 
         ${needDreambreaker ? `
           <div class="switch-alert" style="margin-bottom:14px;">
-            ⚡ HÒA 2-2! MỞ TRẬN ĐƠN ĂN ĐIỂM TRỰC TIẾP (DREAMBREAKER)
+            HÒA 2-2! MỞ TRẬN ĐƠN ĂN ĐIỂM TRỰC TIẾP (DREAMBREAKER)
             <div style="margin-top:8px;">
-              <button class="btn btn-danger" onclick="PB.referee.openSubMatch('db')">🔥 Bắt đầu chấm Trận Đơn</button>
+              <button class="btn btn-danger" onclick="PB.referee.openSubMatch('db')">Bắt đầu chấm Trận Đơn</button>
             </div>
           </div>
         ` : ""}
@@ -188,133 +192,209 @@ PB.referee = {
         </div>
 
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;">
-          <button class="btn btn-sm btn-danger" onclick="PB.referee.forfeitTeamPrompt()">🏳 Bỏ cuộc cả đội (4-0)</button>
+          <button class="btn btn-sm btn-danger" onclick="PB.referee.forfeitTeamPrompt()">Bỏ cuộc cả đội (4-0)</button>
         </div>
       </div>
     `;
   },
 
+  _initLineupDraft(tie) {
+    if (this.lineupDraft && this.lineupDraft.matchId === tie.id) return;
+    const fmtSingles = (arr) => (arr || []).map((x) => `${x.name}(${x.gender === "M" ? "Nam" : "Nữ"})`).join(", ");
+    this.lineupDraft = {
+      matchId: tie.id,
+      A: tie.subMatches.map((sm) => [sm.playersA?.[0] || "", sm.playersA?.[1] || ""]),
+      B: tie.subMatches.map((sm) => [sm.playersB?.[0] || "", sm.playersB?.[1] || ""]),
+      singlesA: fmtSingles(tie.singlesOrder?.A),
+      singlesB: fmtSingles(tie.singlesOrder?.B)
+    };
+  },
+
+  _getUsageCounts(side) {
+    const counts = {};
+    const pairs = this.lineupDraft?.[side] || [];
+    pairs.forEach((pair) => {
+      pair.forEach((name) => {
+        if (name) counts[name] = (counts[name] || 0) + 1;
+      });
+    });
+    return counts;
+  },
+
+  onLineupSelect(side, subIdx, slotIdx, value) {
+    if (!this.lineupDraft) return;
+    this.lineupDraft[side][subIdx][slotIdx] = value;
+    this.renderConsole();
+  },
+
+  onSinglesInput(side, value) {
+    if (!this.lineupDraft) return;
+    if (side === "A") this.lineupDraft.singlesA = value;
+    else this.lineupDraft.singlesB = value;
+  },
+
   _renderTeamLineupForm(tie, el) {
+    this._initLineupDraft(tie);
+    const side = this.lineupStep; // 'A' hoặc 'B'
     const teamA = PB.state.getTeam(tie.teamA);
     const teamB = PB.state.getTeam(tie.teamB);
+    const curTeam = side === "A" ? teamA : teamB;
     const nA = teamA ? teamA.name : "Đội A";
     const nB = teamB ? teamB.name : "Đội B";
+    const curName = side === "A" ? nA : nB;
+    const roster = (curTeam && curTeam.roster) ? curTeam.roster : [];
+    const counts = this._getUsageCounts(side);
+    const pairs = this.lineupDraft[side];
 
-    const renderSelect = (teamObj, gender, curVal, idAttr) => {
-      const roster = (teamObj && teamObj.roster) ? teamObj.roster : [];
-      const filtered = roster.filter((p) => !gender || p.gender === gender);
-      if (filtered.length) {
-        return `
-          <select id="${idAttr}" class="input-sm" style="width:100%;">
-            <option value="">-- Chọn VĐV (${gender === "M" ? "Nam" : "Nữ"}) --</option>
-            ${filtered.map((p) => `<option value="${PB.app.escape(p.name)}" ${curVal === p.name ? "selected" : ""}>${PB.app.escape(p.name)}</option>`).join("")}
-          </select>
-        `;
+    // Render dropdown thông minh:
+    // 1. Lọc đúng giới tính (Đôi nữ chỉ hiện Nữ, Đôi nam chỉ hiện Nam, Đôi nam nữ: ô 1 Nam, ô 2 Nữ)
+    // 2. Ẩn VĐV đã chọn ở ô còn lại trong CÙNG trận đó
+    // 3. Ẩn VĐV đã đủ 2/2 nội dung ở các trận khác
+    const renderSmartSelect = (subIdx, slotIdx, reqGender) => {
+      const curVal = pairs[subIdx][slotIdx] || "";
+      const otherVal = pairs[subIdx][slotIdx === 0 ? 1 : 0] || "";
+      const genderLabel = reqGender === "M" ? "Nam" : "Nữ";
+
+      if (!roster.length) {
+        return `<input type="text" class="input-sm" style="width:100%;" placeholder="Nhập VĐV (${genderLabel})" value="${PB.app.escape(curVal)}" onchange="PB.referee.onLineupSelect('${side}', ${subIdx}, ${slotIdx}, this.value.trim())" />`;
       }
-      return `<input type="text" id="${idAttr}" class="input-sm" style="width:100%;" placeholder="Tên VĐV (${gender === "M" ? "Nam" : "Nữ"})" value="${PB.app.escape(curVal || "")}" />`;
+
+      const available = roster.filter((p) => {
+        if (reqGender && p.gender !== reqGender) return false;
+        // Luôn giữ lại người đang được chọn ở chính ô này
+        if (p.name === curVal) return true;
+        // Ẩn nếu đã được chọn ở ô còn lại trong cùng nội dung/trận này
+        if (p.name === otherVal) return false;
+        // Ẩn nếu đã tham gia đủ 2 nội dung (tối đa 2 trận theo điều lệ)
+        if ((counts[p.name] || 0) >= 2) return false;
+        return true;
+      });
+
+      return `
+        <select class="input-sm" style="width:100%;" onchange="PB.referee.onLineupSelect('${side}', ${subIdx}, ${slotIdx}, this.value)">
+          <option value="">-- Chọn VĐV ${genderLabel} --</option>
+          ${available.map((p) => {
+            const c = counts[p.name] || 0;
+            return `<option value="${PB.app.escape(p.name)}" ${curVal === p.name ? "selected" : ""}>${PB.app.escape(p.name)} (${c}/2 trận)</option>`;
+          }).join("")}
+        </select>
+      `;
     };
 
-    const singlesA = (tie.singlesOrder?.A || []).map((x) => `${x.name}(${x.gender === "M" ? "Nam" : "Nữ"})`).join(", ");
-    const singlesB = (tie.singlesOrder?.B || []).map((x) => `${x.name}(${x.gender === "M" ? "Nam" : "Nữ"})`).join(", ");
+    const quotaHtml = roster.length ? `
+      <div class="roster-quota-bar">
+        ${roster.map((p) => {
+          const c = counts[p.name] || 0;
+          const cls = c >= 2 ? "used-2" : c === 1 ? "used-1" : "";
+          return `<span class="quota-chip ${cls}">${PB.app.escape(p.name)} (${p.gender === "M" ? "Nam" : "Nữ"}): ${c}/2</span>`;
+        }).join("")}
+      </div>
+    ` : "";
+
+    const singlesVal = side === "A" ? this.lineupDraft.singlesA : this.lineupDraft.singlesB;
 
     el.innerHTML = `
       <div class="ref-console">
         <div class="ref-topbar">
           <button class="btn btn-sm btn-secondary" onclick="PB.referee.exitMatch()">← Quay lại</button>
-          <strong>Đăng ký đội hình 4 trận đôi & Thứ tự Đơn</strong>
+          <strong>Đăng ký đội hình Đồng đội</strong>
           <span class="badge badge-serieA">Tối đa 2 trận / VĐV</span>
         </div>
 
-        <p class="muted" style="margin-top:0;">Trước khi thi đấu, hai đội phải đăng ký đội hình cả 4 trận đôi. Hệ thống tự động kiểm tra quy định <strong>mỗi VĐV không quá 02 trận đôi</strong>.</p>
+        <div class="lineup-stepper">
+          <div class="step-pill ${side === "A" ? "active" : "done"}">1. Đội A: ${PB.app.escape(nA)}</div>
+          <div class="step-pill ${side === "B" ? "active" : ""}">2. Đội B: ${PB.app.escape(nB)}</div>
+        </div>
+
+        <p class="muted" style="margin:0 0 10px;">
+          Đang chọn đội hình cho <strong style="color:var(--primary);">${PB.app.escape(curName)}</strong>.
+          Hệ thống tự lọc Nam/Nữ và tự ẩn VĐV đã chọn trong trận hoặc đã đủ 2/2 nội dung.
+        </p>
+
+        ${quotaHtml}
 
         ${tie.subMatches.map((sm, i) => `
           <div class="card" style="padding:12px;margin-bottom:10px;">
-            <strong style="color:var(--primary);">${sm.label}</strong>
-            <div class="form-grid mt-12">
-              <div>
-                <div class="muted" style="margin-bottom:4px;"><strong>${PB.app.escape(nA)}</strong></div>
-                <div style="display:flex;gap:6px;">
-                  ${renderSelect(teamA, sm.reqGender[0], sm.playersA[0], `lu_A_${i}_0`)}
-                  ${renderSelect(teamA, sm.reqGender[1], sm.playersA[1], `lu_A_${i}_1`)}
-                </div>
-              </div>
-              <div>
-                <div class="muted" style="margin-bottom:4px;"><strong>${PB.app.escape(nB)}</strong></div>
-                <div style="display:flex;gap:6px;">
-                  ${renderSelect(teamB, sm.reqGender[0], sm.playersB[0], `lu_B_${i}_0`)}
-                  ${renderSelect(teamB, sm.reqGender[1], sm.playersB[1], `lu_B_${i}_1`)}
-                </div>
-              </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="color:var(--primary);">${sm.label}</strong>
+              <span class="muted" style="font-size:0.76rem;">Yêu cầu: ${sm.reqGender.map((g) => g === "M" ? "Nam" : "Nữ").join(" + ")}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              ${renderSmartSelect(i, 0, sm.reqGender[0])}
+              ${renderSmartSelect(i, 1, sm.reqGender[1])}
             </div>
           </div>
         `).join("")}
 
-        <div class="card" style="padding:12px;">
-          <strong>Thứ tự thi đấu Đơn (nếu hòa 2-2 vòng loại trực tiếp — Nam gặp Nam, Nữ gặp Nữ)</strong>
-          <div class="form-grid mt-12">
-            <div class="form-group">
-              <label>Thứ tự Đơn — ${PB.app.escape(nA)} (cách nhau dấu phẩy)</label>
-              <input type="text" id="singlesOrderA" class="input" placeholder="VD: Dương(Nữ), Hùng(Nam), Hạnh(Nữ), Nam(Nam)" value="${PB.app.escape(singlesA)}" />
-            </div>
-            <div class="form-group">
-              <label>Thứ tự Đơn — ${PB.app.escape(nB)} (cách nhau dấu phẩy)</label>
-              <input type="text" id="singlesOrderB" class="input" placeholder="VD: Thư(Nữ), Minh(Nam), Mai(Nữ), Tuấn(Nam)" value="${PB.app.escape(singlesB)}" />
-            </div>
+        <div class="card" style="padding:12px;margin-bottom:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Thứ tự đánh Đơn của ${PB.app.escape(curName)} (nếu hòa 2-2 loại trực tiếp — Nam gặp Nam, Nữ gặp Nữ)</label>
+            <input type="text" class="input" placeholder="VD: Dương(Nữ), Hùng(Nam), Hạnh(Nữ), Nam(Nam)" value="${PB.app.escape(singlesVal)}" oninput="PB.referee.onSinglesInput('${side}', this.value)" />
           </div>
         </div>
 
         <div id="lineupErrorBox" class="error-text hidden" style="margin-bottom:10px;"></div>
 
-        <div style="display:flex;justify-content:flex-end;gap:8px;">
-          <button class="btn btn-primary" onclick="PB.referee.saveTeamLineup()">✅ Khóa đội hình & Vào trận</button>
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+          ${side === "B"
+            ? `<button class="btn btn-secondary" onclick="PB.referee.goLineupStep('A')">← Sửa lại Đội A</button>`
+            : `<span></span>`}
+          ${side === "A"
+            ? `<button class="btn btn-primary" onclick="PB.referee.confirmSideA()">Xác nhận Đội A → Chọn Đội B</button>`
+            : `<button class="btn btn-success" onclick="PB.referee.confirmSideBAndStart()">Xác nhận Đội B & Vào trận</button>`}
         </div>
       </div>
     `;
   },
 
-  saveTeamLineup() {
-    const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
-    if (!tie) return;
+  goLineupStep(step) {
+    this.lineupStep = step;
+    this.renderConsole();
+  },
 
-    const draftSubs = tie.subMatches.map((sm, i) => ({
-      ...sm,
-      playersA: [
-        (document.getElementById(`lu_A_${i}_0`)?.value || "").trim(),
-        (document.getElementById(`lu_A_${i}_1`)?.value || "").trim()
-      ],
-      playersB: [
-        (document.getElementById(`lu_B_${i}_0`)?.value || "").trim(),
-        (document.getElementById(`lu_B_${i}_1`)?.value || "").trim()
-      ]
-    }));
-
-    const valA = PB.rules.validateTeamLineup(draftSubs, "A");
-    const valB = PB.rules.validateTeamLineup(draftSubs, "B");
+  confirmSideA() {
     const errBox = document.getElementById("lineupErrorBox");
+    const counts = this._getUsageCounts("A");
+    const over = Object.entries(counts).filter(([, c]) => c > 2);
+    if (over.length) {
+      errBox.textContent = "Đội A có VĐV vượt quá 2 nội dung: " + over.map(([n, c]) => `${n} (${c}/2)`).join(", ");
+      errBox.classList.remove("hidden");
+      return;
+    }
+    this.lineupStep = "B";
+    PB.app.toast("Đã xác nhận Đội A — Mời chọn Đội B");
+    this.renderConsole();
+  },
 
-    if (!valA.ok || !valB.ok) {
-      const msgs = [];
-      if (!valA.ok) msgs.push(`${PB.state.getTeamName(tie.teamA)} vi phạm tối đa 2 trận: ${valA.violations.map(([n, c]) => `${n} (${c} trận)`).join(", ")}`);
-      if (!valB.ok) msgs.push(`${PB.state.getTeamName(tie.teamB)} vi phạm tối đa 2 trận: ${valB.violations.map(([n, c]) => `${n} (${c} trận)`).join(", ")}`);
-      errBox.textContent = "⚠️ " + msgs.join(" | ");
+  confirmSideBAndStart() {
+    const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+    if (!tie || !this.lineupDraft) return;
+    const errBox = document.getElementById("lineupErrorBox");
+    const countsB = this._getUsageCounts("B");
+    const overB = Object.entries(countsB).filter(([, c]) => c > 2);
+    if (overB.length) {
+      errBox.textContent = "Đội B có VĐV vượt quá 2 nội dung: " + overB.map(([n, c]) => `${n} (${c}/2)`).join(", ");
       errBox.classList.remove("hidden");
       return;
     }
 
-    const parseOrder = (str) => str.split(",").map((s) => s.trim()).filter(Boolean).map((s) => {
+    const parseOrder = (str) => (str || "").split(",").map((s) => s.trim()).filter(Boolean).map((s) => {
       const isF = /nữ|nu|\(f\)/i.test(s);
       return { name: s.replace(/\(.*?\)/g, "").trim(), gender: isF ? "F" : "M" };
     });
 
-    tie.subMatches = draftSubs;
+    tie.subMatches.forEach((sm, i) => {
+      sm.playersA = [...this.lineupDraft.A[i]];
+      sm.playersB = [...this.lineupDraft.B[i]];
+    });
     tie.singlesOrder = {
-      A: parseOrder(document.getElementById("singlesOrderA")?.value || ""),
-      B: parseOrder(document.getElementById("singlesOrderB")?.value || "")
+      A: parseOrder(this.lineupDraft.singlesA),
+      B: parseOrder(this.lineupDraft.singlesB)
     };
     tie.lineupLocked = true;
     if (tie.status === "pending") tie.status = "live";
     PB.state.save();
-    PB.app.toast("✅ Đã khóa đội hình hợp lệ!");
+    PB.app.toast("Đã khóa đội hình 2 đội — Bắt đầu thi đấu!");
     this.renderConsole();
   },
 
@@ -378,7 +458,7 @@ PB.referee = {
           <div class="callout-score">${callout}</div>
         </div>
 
-        ${sm.switchedAlerted && (sm.scoreA === 8 || sm.scoreB === 8) ? `<div class="switch-alert">🔄 CHẠM ĐIỂM 8 — YÊU CẦU HAI ĐỘI ĐỔI SÂN!</div>` : ""}
+        ${sm.switchedAlerted && (sm.scoreA === 8 || sm.scoreB === 8) ? `<div class="switch-alert">CHẠM ĐIỂM 8 — YÊU CẦU HAI ĐỘI ĐỔI SÂN!</div>` : ""}
 
         <div class="ref-courts-split">
           ${renderSide(leftSide)}
@@ -386,10 +466,10 @@ PB.referee = {
         </div>
 
         <div class="ref-tools-grid">
-          <button class="btn btn-warning" onclick="PB.referee.teamSubSideOut()" ${sm.status === "finished" ? "disabled" : ""}>🔄 Lỗi giao bóng</button>
-          <button class="btn btn-secondary" onclick="PB.referee.teamSubUndo()" ${!sm.history?.length ? "disabled" : ""}>↩ Hoàn tác</button>
-          <button class="btn btn-secondary" onclick="PB.referee.teamSubSwap()">⇄ Đảo bên sân</button>
-          <button class="btn btn-success" onclick="PB.referee.teamSubFinishManual()" ${sm.status === "finished" ? "disabled" : ""}>🏁 Chốt trận</button>
+          <button class="btn btn-warning" onclick="PB.referee.teamSubSideOut()" ${sm.status === "finished" ? "disabled" : ""}>Lỗi giao bóng</button>
+          <button class="btn btn-secondary" onclick="PB.referee.teamSubUndo()" ${!sm.history?.length ? "disabled" : ""}>Hoàn tác</button>
+          <button class="btn btn-secondary" onclick="PB.referee.teamSubSwap()">Đảo bên sân</button>
+          <button class="btn btn-success" onclick="PB.referee.teamSubFinishManual()" ${sm.status === "finished" ? "disabled" : ""}>Chốt trận</button>
         </div>
       </div>
     `;
@@ -399,11 +479,11 @@ PB.referee = {
     const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     const res = PB.rules.addTeamSubPoint(tie, this.activeSubIdx, side);
     PB.state.save();
-    if (res.needSwitchAlert) PB.app.toast("🔄 Chạm điểm 8 — Đổi sân!");
+    if (res.needSwitchAlert) PB.app.toast("Chạm điểm 8 — Đổi sân!");
     if (res.event === "sub_point_reached") {
       const sm = tie.subMatches[this.activeSubIdx];
-      setTimeout(() => {
-        if (confirm(`🏆 Chốt kết thúc ${sm.label} với tỷ số ${sm.scoreA} - ${sm.scoreB}?`)) {
+      setTimeout(async () => {
+        if (await PB.ui.confirm(`Chốt kết thúc ${sm.label} với tỷ số ${sm.scoreA} - ${sm.scoreB}?`, "Xác nhận kết thúc")) {
           PB.rules.confirmFinishTeamSub(tie, this.activeSubIdx);
           PB.state.save();
           this.backToTeamHub();
@@ -429,40 +509,40 @@ PB.referee = {
     PB.state.save();
   },
 
-  teamSubFinishManual() {
+  async teamSubFinishManual() {
     const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     const sm = tie.subMatches[this.activeSubIdx];
-    if (sm.scoreA === sm.scoreB) return alert("Tỷ số đang hòa!");
-    if (!confirm(`Chốt ${sm.label} (${sm.scoreA} - ${sm.scoreB})?`)) return;
+    if (sm.scoreA === sm.scoreB) return PB.ui.alert("Tỷ số đang hòa, chưa thể chốt kết thúc.");
+    if (!(await PB.ui.confirm(`Xác nhận chốt ${sm.label} (${sm.scoreA} - ${sm.scoreB})?`, "Chốt trận"))) return;
     PB.rules.confirmFinishTeamSub(tie, this.activeSubIdx);
     PB.state.save();
     this.backToTeamHub();
   },
 
-  forfeitSubPrompt(subIdx) {
+  async forfeitSubPrompt(subIdx) {
     const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     const nA = PB.state.getTeamName(tie.teamA);
     const nB = PB.state.getTeamName(tie.teamB);
-    const c = prompt(`Bỏ cuộc đôi (tính 15-0).\nNhập "A" nếu [${nA}] thắng 15-0, nhập "B" nếu [${nB}] thắng 15-0:`);
+    const c = await PB.ui.prompt(`Nhập "A" nếu [${nA}] thắng 15-0, nhập "B" nếu [${nB}] thắng 15-0:`, "", "Bỏ cuộc đôi (15-0)");
     if (!c) return;
     const w = c.trim().toUpperCase();
-    if (w !== "A" && w !== "B") return alert("Chỉ nhập A hoặc B.");
+    if (w !== "A" && w !== "B") return PB.ui.alert("Chỉ nhập A hoặc B.");
     PB.rules.forfeitTeamSub(tie, subIdx, w);
     PB.state.save();
-    PB.app.toast("🏳 Đã chốt bỏ cuộc đôi 15-0");
+    PB.app.toast("Đã chốt bỏ cuộc đôi 15-0");
   },
 
-  forfeitTeamPrompt() {
+  async forfeitTeamPrompt() {
     const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     const nA = PB.state.getTeamName(tie.teamA);
     const nB = PB.state.getTeamName(tie.teamB);
-    const c = prompt(`Bỏ cuộc CẢ ĐỘI (tính 4-0, đội bỏ cuộc 0 điểm BXH).\nNhập "A" nếu [${nA}] thắng 4-0, nhập "B" nếu [${nB}] thắng 4-0:`);
+    const c = await PB.ui.prompt(`Nhập "A" nếu [${nA}] thắng 4-0, nhập "B" nếu [${nB}] thắng 4-0:`, "", "Bỏ cuộc cả đội (4-0)");
     if (!c) return;
     const w = c.trim().toUpperCase();
-    if (w !== "A" && w !== "B") return alert("Chỉ nhập A hoặc B.");
+    if (w !== "A" && w !== "B") return PB.ui.alert("Chỉ nhập A hoặc B.");
     PB.rules.forfeitEntireTeam(tie, w);
     PB.state.save();
-    PB.app.toast("🏳 Đã chốt bỏ cuộc cả đội (4-0)");
+    PB.app.toast("Đã chốt bỏ cuộc cả đội (4-0)");
     this.exitMatch();
   },
 
@@ -480,7 +560,7 @@ PB.referee = {
       <div class="ref-console">
         <div class="ref-topbar">
           <button class="btn btn-sm btn-secondary" onclick="PB.referee.backToTeamHub()">← Về 4 trận</button>
-          <strong>🔥 TRẬN ĐƠN DREAMBREAKER (ĂN ĐIỂM TRỰC TIẾP)</strong>
+          <strong>TRẬN ĐƠN DREAMBREAKER (ĂN ĐIỂM TRỰC TIẾP)</strong>
           <span class="badge badge-live">Xoay tua mỗi 4đ</span>
         </div>
 
@@ -489,7 +569,7 @@ PB.referee = {
           <div class="callout-score">${db.scoreA} - ${db.scoreB}</div>
         </div>
 
-        ${db.switchedAlerted && (db.scoreA === 11 || db.scoreB === 11) ? `<div class="switch-alert">🔄 CHẠM ĐIỂM 11 — HAI ĐỘI ĐỔI SÂN!</div>` : ""}
+        ${db.switchedAlerted && (db.scoreA === 11 || db.scoreB === 11) ? `<div class="switch-alert">CHẠM ĐIỂM 11 — HAI ĐỘI ĐỔI SÂN!</div>` : ""}
 
         <div class="ref-courts-split">
           <div class="ref-side side-a">
@@ -505,8 +585,8 @@ PB.referee = {
         </div>
 
         <div class="ref-tools-grid">
-          <button class="btn btn-secondary" onclick="PB.referee.dbUndo()" ${!db.history?.length ? "disabled" : ""}>↩ Hoàn tác</button>
-          <button class="btn btn-success" onclick="PB.referee.dbFinishManual()">🏁 Chốt trận Đơn</button>
+          <button class="btn btn-secondary" onclick="PB.referee.dbUndo()" ${!db.history?.length ? "disabled" : ""}>Hoàn tác</button>
+          <button class="btn btn-success" onclick="PB.referee.dbFinishManual()">Chốt trận Đơn</button>
         </div>
       </div>
     `;
@@ -516,12 +596,12 @@ PB.referee = {
     const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     const res = PB.rules.addDreambreakerPoint(tie, side);
     PB.state.save();
-    if (res.rotated) PB.app.toast("🔁 Đủ 4 điểm — Đổi cặp VĐV tiếp theo!");
-    if (res.needSwitchAlert) PB.app.toast("🔄 Chạm điểm 11 — Đổi sân!");
+    if (res.rotated) PB.app.toast("Đủ 4 điểm — Đổi cặp VĐV tiếp theo!");
+    if (res.needSwitchAlert) PB.app.toast("Chạm điểm 11 — Đổi sân!");
     if (res.event === "db_point_reached") {
       const db = tie.dreambreaker;
-      setTimeout(() => {
-        if (confirm(`🏆 Chốt kết thúc Trận Đơn (${db.scoreA} - ${db.scoreB})?`)) {
+      setTimeout(async () => {
+        if (await PB.ui.confirm(`Chốt kết thúc Trận Đơn (${db.scoreA} - ${db.scoreB})?`, "Kết thúc Trận Đơn")) {
           PB.rules.confirmFinishDreambreaker(tie);
           PB.state.save();
           this.exitMatch();
@@ -535,11 +615,11 @@ PB.referee = {
     if (PB.rules.undoDreambreaker(tie)) PB.state.save();
   },
 
-  dbFinishManual() {
+  async dbFinishManual() {
     const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     const db = tie.dreambreaker;
-    if (db.scoreA === db.scoreB) return alert("Tỷ số đang hòa!");
-    if (!confirm(`Chốt Trận Đơn (${db.scoreA} - ${db.scoreB})?`)) return;
+    if (db.scoreA === db.scoreB) return PB.ui.alert("Tỷ số đang hòa!");
+    if (!(await PB.ui.confirm(`Chốt Trận Đơn (${db.scoreA} - ${db.scoreB})?`, "Chốt Trận Đơn"))) return;
     PB.rules.confirmFinishDreambreaker(tie);
     PB.state.save();
     this.exitMatch();
@@ -599,7 +679,7 @@ PB.referee = {
           <div class="callout-label">Đọc điểm (${settings.scoringMode === "sideout" ? "Side-out" : "Rally"} • BO${settings.bestOf})</div>
           <div class="callout-score">${callout}</div>
         </div>
-        ${showSwitchBanner ? `<div class="switch-alert">🔄 CHẠM ĐIỂM ${switchPt} — YÊU CẦU HAI ĐỘI ĐỔI SÂN!</div>` : ""}
+        ${showSwitchBanner ? `<div class="switch-alert">CHẠM ĐIỂM ${switchPt} — YÊU CẦU HAI ĐỘI ĐỔI SÂN!</div>` : ""}
         ${this.timerSeconds > 0 ? `
           <div class="timeout-banner">
             <span>⏱ ${PB.app.escape(this.timerLabel)}: <strong>${this._fmtSec(this.timerSeconds)}</strong></span>
@@ -627,14 +707,14 @@ PB.referee = {
     if (!m) return;
     const res = PB.rules.addPoint(m, side, PB.state.data.settings);
     PB.state.save();
-    if (res.needSwitchAlert) PB.app.toast("🔄 Đã chạm điểm đổi sân!");
+    if (res.needSwitchAlert) PB.app.toast("Đã chạm điểm đổi sân!");
     if (res.event === "set_point_reached") {
       const wName = PB.state.getTeamName(res.winnerSide === "A" ? m.teamA : m.teamB);
-      setTimeout(() => {
-        if (confirm(`🏆 ${wName} đủ điểm thắng Set (${m.scoreA} - ${m.scoreB})!\nXác nhận chốt?`)) {
+      setTimeout(async () => {
+        if (await PB.ui.confirm(`${wName} đủ điểm thắng Set (${m.scoreA} - ${m.scoreB}). Xác nhận chốt?`, "Kết thúc Set")) {
           const outcome = PB.rules.confirmFinishSetOrMatch(m, PB.state.data.settings);
           PB.state.save();
-          if (outcome === "match_finished") { PB.app.toast(`🏁 Chiến thắng: ${wName}`); this.exitMatch(); }
+          if (outcome === "match_finished") { PB.app.toast(`Chiến thắng: ${wName}`); this.exitMatch(); }
         }
       }, 100);
     }
@@ -651,29 +731,29 @@ PB.referee = {
     this.stopTimer(); this.timerSeconds = sec; this.timerLabel = label; this.renderConsole();
     this.timerInterval = setInterval(() => {
       this.timerSeconds -= 1;
-      if (this.timerSeconds <= 0) { this.stopTimer(); PB.app.toast(`⏰ Hết giờ ${label}!`); }
+      if (this.timerSeconds <= 0) { this.stopTimer(); PB.app.toast(`Hết giờ ${label}!`); }
       else this.renderConsole();
     }, 1000);
   },
   stopTimer() { if (this.timerInterval) clearInterval(this.timerInterval); this.timerInterval = null; this.timerSeconds = 0; this.timerLabel = ""; if (this.activeMatchId) this.renderConsole(); },
-  techFoul(side) {
+  async techFoul(side) {
     const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
-    if (!m || !confirm("Phạt Lỗi Kỹ Thuật (+1 điểm đối thủ)?")) return;
+    if (!m || !(await PB.ui.confirm("Phạt Lỗi Kỹ Thuật (+1 điểm trực tiếp cho đối thủ)?", "Lỗi Kỹ Thuật", true))) return;
     PB.rules.addTechnicalFoul(m, side, PB.state.data.settings); PB.state.save();
   },
-  walkoverPrompt() {
+  async walkoverPrompt() {
     const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     if (!m) return;
-    const c = prompt(`Nhập "A" nếu [${PB.state.getTeamName(m.teamA)}] thắng WO, hoặc "B" nếu [${PB.state.getTeamName(m.teamB)}] thắng WO:`);
+    const c = await PB.ui.prompt(`Nhập "A" nếu [${PB.state.getTeamName(m.teamA)}] thắng WO, hoặc "B" nếu [${PB.state.getTeamName(m.teamB)}] thắng WO:`, "", "Bỏ cuộc (Walkover)");
     if (!c) return;
     const w = c.trim().toUpperCase();
     if (w !== "A" && w !== "B") return;
     PB.rules.finishByDefault(m, w, "Walkover"); PB.state.save(); this.exitMatch();
   },
-  finishManual() {
+  async finishManual() {
     const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
-    if (!m || m.scoreA === m.scoreB) return alert("Tỷ số đang hòa!");
-    if (!confirm(`Chốt kết quả (${m.scoreA} - ${m.scoreB})?`)) return;
+    if (!m || m.scoreA === m.scoreB) return PB.ui.alert("Tỷ số đang hòa, chưa thể chốt.");
+    if (!(await PB.ui.confirm(`Xác nhận chốt kết quả (${m.scoreA} - ${m.scoreB})?`, "Chốt kết thúc"))) return;
     const out = PB.rules.confirmFinishSetOrMatch(m, PB.state.data.settings); PB.state.save();
     if (out === "match_finished") this.exitMatch();
   },

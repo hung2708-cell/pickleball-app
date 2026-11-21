@@ -40,7 +40,7 @@ PB.rules = {
     };
   },
 
-  createMatch({ id, stage, group, roundName, teamA, teamB, court = 0, nextMatchId = null, nextSlot = null, matchType = null }) {
+  createMatch({ id, stage, group, roundName, teamA, teamB, court = 0, nextMatchId = null, nextSlot = null, matchType = null, labelA = '', labelB = '', sourceA = null, sourceB = null, roundOrder = 0 }) {
     const type = matchType || (PB.state.data?.settings?.category === "team" ? "team" : "doubles");
     const base = {
       id,
@@ -68,6 +68,11 @@ PB.rules = {
       forfeitSide: null, // 'A' | 'B' nếu bỏ cuộc cả đội
       nextMatchId,
       nextSlot,
+      labelA,
+      labelB,
+      sourceA,
+      sourceB,
+      roundOrder,
       history: [],
       logs: []
     };
@@ -210,7 +215,7 @@ PB.rules = {
     tie.forfeitSide = winnerSide === "A" ? "B" : "A";
     tie.finishReason = "Bỏ cuộc cả đội (4-0)";
     tie.logs.unshift(`[${this.nowTime()}] 🏳 Đội ${tie.forfeitSide} bỏ cuộc toàn giải/trận -> ${tie.scoreA}-${tie.scoreB}`);
-    PB.bracket.propagateWinner(tie);
+    PB.bracket.onMatchFinished(tie);
   },
 
   // Đơn Dreambreaker (Hòa 2-2 vòng loại trực tiếp): Ăn điểm trực tiếp (Rally), xoay tua mỗi 4 điểm, 11 điểm đổi sân, chạm 21
@@ -277,12 +282,13 @@ PB.rules = {
       // Vòng bảng: đánh đủ 4 trận, có thể hòa 2-2
       tie.status = "finished";
       tie.winner = wA > wB ? "A" : (wB > wA ? "B" : "DRAW");
+      PB.bracket.onMatchFinished(tie);
     } else {
       // Vòng loại trực tiếp
       if (wA !== wB) {
         tie.status = "finished";
         tie.winner = wA > wB ? "A" : "B";
-        PB.bracket.propagateWinner(tie);
+        PB.bracket.onMatchFinished(tie);
       } else {
         // Hòa 2-2 -> Kiểm tra trận Đơn Dreambreaker
         if (tie.dreambreaker && tie.dreambreaker.status === "finished") {
@@ -290,7 +296,7 @@ PB.rules = {
           tie.winner = tie.dreambreaker.winner;
           if (tie.winner === "A") tie.scoreA = 3;
           else tie.scoreB = 3;
-          PB.bracket.propagateWinner(tie);
+          PB.bracket.onMatchFinished(tie);
         } else {
           tie.status = "live";
           tie.winner = null;
@@ -416,7 +422,7 @@ PB.rules = {
     if (m.setsA >= setsNeeded || m.setsB >= setsNeeded) {
       m.status = "finished";
       m.winner = winnerSide;
-      PB.bracket.propagateWinner(m);
+      PB.bracket.onMatchFinished(m);
       return "match_finished";
     } else {
       m.scoreA = 0; m.scoreB = 0;
@@ -440,6 +446,6 @@ PB.rules = {
       m.setsA = winnerSide === "A" ? 1 : 0;
       m.setsB = winnerSide === "B" ? 1 : 0;
     }
-    PB.bracket.propagateWinner(m);
+    PB.bracket.onMatchFinished(m);
   }
 };

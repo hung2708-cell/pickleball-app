@@ -317,13 +317,24 @@ PB.admin = {
     PB.app.toast(`Đã tạo ${res.count} trận vòng loại trực tiếp!`);
   },
 
-  assignCourt(matchId, courtNum) {
+  async assignCourt(matchId, courtNum) {
     const m = PB.state.data.matches.find((x) => x.id === matchId);
-    if (m) {
-      m.court = Number(courtNum);
-      PB.state.save();
-      PB.app.toast(m.court ? `Đã xếp vào Sân ${m.court}` : "Đã bỏ xếp sân");
+    if (!m) return;
+    const cNum = Number(courtNum);
+    if (cNum > 0) {
+      const conflict = PB.state.findLiveConflict(matchId);
+      if (conflict) {
+        await PB.ui.alert(
+          `Không thể xếp vào Sân ${cNum} vì [${conflict.who}] hiện đang thi đấu trực tiếp tại Sân ${conflict.court}.`,
+          "Trùng lịch thi đấu VĐV"
+        );
+        this.renderScheduleSub();
+        return;
+      }
     }
+    m.court = cNum;
+    PB.state.save();
+    PB.app.toast(m.court ? `Đã xếp vào Sân ${m.court}` : "Đã bỏ xếp sân");
   },
 
   async editScorePrompt(matchId) {

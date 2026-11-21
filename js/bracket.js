@@ -252,28 +252,28 @@ PB.bracket = {
     const matches = PB.state.data.matches;
 
     const busyCourts = new Set();
-    const busyTeams = new Set();
+    const busyPlayers = new Set();
 
     matches.forEach((m) => {
       if (m.status === "live" || (m.status === "pending" && m.court > 0 && m.teamA && m.teamB)) {
         if (m.court) busyCourts.add(Number(m.court));
-        if (m.teamA) busyTeams.add(m.teamA);
-        if (m.teamB) busyTeams.add(m.teamB);
+        PB.state.getMatchPlayerNames(m).forEach((p) => busyPlayers.add(p));
       }
     });
 
     for (let c = 1; c <= numCourts; c++) {
       if (busyCourts.has(c)) continue;
-      // Tìm trận pending đầu tiên đủ 2 đội, chưa có sân, và 2 đội đang rảnh
-      const nextReady = matches.find((m) =>
-        m.status === "pending" && !m.court && m.teamA && m.teamB &&
-        !busyTeams.has(m.teamA) && !busyTeams.has(m.teamB)
-      );
+      // Tìm trận pending đầu tiên đủ 2 đội, chưa có sân, và KHÔNG CÓ VĐV nào đang bận sân khác
+      const nextReady = matches.find((m) => {
+        if (m.status !== "pending" || m.court || !m.teamA || !m.teamB) return false;
+        const players = PB.state.getMatchPlayerNames(m);
+        for (const p of players) { if (busyPlayers.has(p)) return false; }
+        return true;
+      });
       if (nextReady) {
         nextReady.court = c;
         busyCourts.add(c);
-        busyTeams.add(nextReady.teamA);
-        busyTeams.add(nextReady.teamB);
+        PB.state.getMatchPlayerNames(nextReady).forEach((p) => busyPlayers.add(p));
       }
     }
   },

@@ -82,17 +82,157 @@ PB.referee = {
     `).join("");
   },
 
-  openMatch(matchId) {
+  async openMatch(matchId) {
+    const m = PB.state.data.matches.find((x) => x.id === matchId);
+    if (!m) return;
+    if (m.status === "pending") {
+      const conflict = PB.state.findLiveConflict(matchId);
+      if (conflict) {
+        await PB.ui.alert(
+          `Không thể bắt đầu trận này vì VĐV/Đội [${conflict.who}] đang thi đấu trên Sân ${conflict.court}.\nVĐV không thể thi đấu cùng lúc trên 2 sân.`,
+          "Trùng sân thi đấu"
+        );
+        return;
+      }
+    }
     this.activeMatchId = matchId;
     this.activeSubIdx = null;
     this.lineupStep = "A";
     this.lineupDraft = null;
-    const m = PB.state.data.matches.find((x) => x.id === matchId);
-    if (m && m.matchType !== "team" && m.status === "pending") {
+    if (m.matchType !== "team" && m.status === "pending") {
       PB.rules.startMatch(m);
       PB.state.save();
     }
     this.renderConsole();
+  },
+
+  // Vẽ sơ đồ kẻ sân Pickleball chuẩn + nhấp nháy ô Phát bóng & Đỡ bóng
+  _renderCourtDiagram({ leftSide, rightSide, leftName, rightName, serverSide, scoreA, scoreB, serverNum }) {
+    const serverScore = serverSide === "A" ? scoreA : scoreB;
+    const isEven = (serverScore % 2) === 0;
+    const serverOnLeft = (serverSide === leftSide);
+
+    // Quy tắc Pickleball:
+    // - Nhìn vào lưới: Điểm CHẴN giao từ ô BÊN PHẢI; Điểm LẺ giao từ ô BÊN TRÁI.
+    // - Với nửa sân TRÁI (nhìn sang phải): ô PHẢI là ô DƯỚI (bottom), ô TRÁI là ô TRÊN (top).
+    // - Với nửa sân PHẢI (nhìn sang trái): ô PHẢI là ô TRÊN (top), ô TRÁI là ô DƯỚI (bottom).
+    // - Ô đỡ bóng luôn nằm CHÉO đối diện với ô giao bóng.
+    let lTop = "", lBot = "", rTop = "", rBot = "";
+    if (serverOnLeft) {
+      if (isEven) { lBot = "serve"; rTop = "receive"; }
+      else { lTop = "serve"; rBot = "receive"; }
+    } else {
+      if (isEven) { rTop = "serve"; lBot = "receive"; }
+      else { rBot = "serve"; lTop = "receive"; }
+    }
+
+    const boxHtml = (state, posLabel) => {
+      if (state === "serve") {
+        return `<div class="pb-box is-serve-box"><span class="pb-tag-pill">PHÁT BÓNG</span><span>${posLabel}</span>${serverNum ? `<span class="pb-box-sub">Lượt ${serverNum}</span>` : ""}</div>`;
+      }
+      if (state === "receive") {
+        return `<div class="pb-box is-receive-box"><span class="pb-tag-pill">ĐỠ BÓNG</span><span>${posLabel}</span></div>`;
+      }
+      return `<div class="pb-box"><span>${posLabel}</span></div>`;
+    };
+
+    return `
+      <div class="pb-court-card">
+        <div class="pb-court-legend">
+          <span><strong>Sân Trái:</strong> ${PB.app.escape(leftName)}</span>
+          <div>
+            <span><i class="pb-legend-dot" style="background:#ea580c;"></i>Phát</span>
+            <span style="margin-left:8px;"><i class="pb-legend-dot" style="background:#059669;"></i>Đỡ</span>
+          </div>
+          <span><strong>Sân Phải:</strong> ${PB.app.escape(rightName)}</span>
+        </div>
+        <div class="pb-court-grid">
+          <div class="pb-service-col">
+            ${boxHtml(lTop, "Ô Trái (Lẻ)")}
+            ${boxHtml(lBot, "Ô Phải (Chẵn)")}
+          </div>
+          <div class="pb-kitchen">KITCHEN</div>
+          <div class="pb-net"></div>
+          <div class="pb-kitchen">KITCHEN</div>
+          <div class="pb-service-col">
+            ${boxHtml(rTop, "Ô Phải (Chẵn)")}
+            ${boxHtml(rBot, "Ô Trái (Lẻ)")}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  // Bốc thăm chọn bóng / chọn sân (iOS 27 Modal)
+  openTossModal() {
+    const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+    if (!m) return;
+    const isSub = m.matchType === "team" && typeof this.activeSubIdx === "number";
+    const nA = isSub
+      ? ((m.subMatches[this.activeSubIdx].playersA || []).filter(Boolean).join(" / ") || PB.state.getTeamName(m.teamA))
+      : PB.state.getTeamName(m.teamA);
+    const nB = isSub
+      ? ((m.subMatches[this.activeSubIdx].playersB || []).filter(Boolean).join(" / ") || PB.state.getTeamName(m.teamB))
+      : PB.state.getTeamName(m.teamB);
+
+    PB.app.openInfoModal("Bốc thăm chọn bóng & chọn sân", `
+      <div class="text-center">
+        <div id="tossCoinEl" class="toss-coin">?</div>
+        <div id="tossResultText" style="font-weight:800;font-size:1rem;margin-bottom:12px;">
+          Bấm nút bên dưới để bốc thăm ngẫu nhiên giữa 2 đội
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-bottom:14px;" onclick="PB.referee.runCoinToss('${PB.app.escape(nA)}', '${PB.app.escape(nB)}')">
+          Tung đồng xu bốc thăm
+        </button>
+
+        <div id="tossChoicesBox" class="hidden" style="border-top:1px solid var(--border);padding-top:12px;text-align:left;">
+          <div class="muted" style="margin-bottom:8px;text-align:center;">Đội thắng bốc thăm chọn quyền ưu tiên:</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button class="btn btn-primary" onclick="PB.referee.applyTossChoice('serve')">Chọn Giao bóng trước</button>
+            <button class="btn btn-secondary" onclick="PB.referee.applyTossChoice('receive')">Chọn Đỡ bóng trước</button>
+            <button class="btn btn-secondary" onclick="PB.referee.applyTossChoice('left')">Chọn Sân Trái</button>
+            <button class="btn btn-secondary" onclick="PB.referee.applyTossChoice('right')">Chọn Sân Phải</button>
+          </div>
+        </div>
+      </div>
+    `);
+  },
+
+  runCoinToss(nA, nB) {
+    const coin = document.getElementById("tossCoinEl");
+    const txt = document.getElementById("tossResultText");
+    const box = document.getElementById("tossChoicesBox");
+    if (!coin) return;
+    coin.classList.remove("spinning");
+    void coin.offsetWidth;
+    coin.classList.add("spinning");
+
+    const winner = Math.random() < 0.5 ? "A" : "B";
+    this._lastTossWinner = winner;
+    setTimeout(() => {
+      coin.textContent = winner;
+      txt.innerHTML = `Đội thắng bốc thăm: <span style="color:var(--primary);">${winner === "A" ? nA : nB}</span>`;
+      box.classList.remove("hidden");
+    }, 350);
+  },
+
+  applyTossChoice(choice) {
+    const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+    if (!m || !this._lastTossWinner) return;
+    const w = this._lastTossWinner;
+    const opp = w === "A" ? "B" : "A";
+    const target = (m.matchType === "team" && typeof this.activeSubIdx === "number")
+      ? m.subMatches[this.activeSubIdx]
+      : m;
+
+    if (choice === "serve") { target.server = w; target.serverNum = 2; }
+    else if (choice === "receive") { target.server = opp; target.serverNum = 2; }
+    else if (choice === "left") { target.swapped = (w === "B"); }
+    else if (choice === "right") { target.swapped = (w === "A"); }
+
+    PB.state.save();
+    PB.app.closeModal("infoModal");
+    PB.app.toast("Đã áp dụng kết quả bốc thăm!");
   },
 
   exitMatch() {
@@ -460,6 +600,14 @@ PB.referee = {
 
         ${sm.switchedAlerted && (sm.scoreA === 8 || sm.scoreB === 8) ? `<div class="switch-alert">CHẠM ĐIỂM 8 — YÊU CẦU HAI ĐỘI ĐỔI SÂN!</div>` : ""}
 
+        ${this._renderCourtDiagram({
+          leftSide, rightSide,
+          leftName: (leftSide === "A" ? sm.playersA : sm.playersB).filter(Boolean).join(" / ") || PB.state.getTeamName(leftSide === "A" ? tie.teamA : tie.teamB),
+          rightName: (rightSide === "A" ? sm.playersA : sm.playersB).filter(Boolean).join(" / ") || PB.state.getTeamName(rightSide === "A" ? tie.teamA : tie.teamB),
+          serverSide: sm.server,
+          scoreA: sm.scoreA, scoreB: sm.scoreB,
+          serverNum: sm.serverNum
+        })}
         <div class="ref-courts-split">
           ${renderSide(leftSide)}
           ${renderSide(rightSide)}
@@ -468,6 +616,7 @@ PB.referee = {
         <div class="ref-tools-grid">
           <button class="btn btn-warning" onclick="PB.referee.teamSubSideOut()" ${sm.status === "finished" ? "disabled" : ""}>Lỗi giao bóng</button>
           <button class="btn btn-secondary" onclick="PB.referee.teamSubUndo()" ${!sm.history?.length ? "disabled" : ""}>Hoàn tác</button>
+          <button class="btn btn-secondary" onclick="PB.referee.openTossModal()">Bốc thăm</button>
           <button class="btn btn-secondary" onclick="PB.referee.teamSubSwap()">Đảo bên sân</button>
           <button class="btn btn-success" onclick="PB.referee.teamSubFinishManual()" ${sm.status === "finished" ? "disabled" : ""}>Chốt trận</button>
         </div>
@@ -686,6 +835,14 @@ PB.referee = {
             <button class="btn btn-sm btn-danger" onclick="PB.referee.stopTimer()">Dừng</button>
           </div>
         ` : ""}
+        ${this._renderCourtDiagram({
+          leftSide, rightSide,
+          leftName: PB.state.getTeamName(leftSide === "A" ? m.teamA : m.teamB),
+          rightName: PB.state.getTeamName(rightSide === "A" ? m.teamA : m.teamB),
+          serverSide: m.server,
+          scoreA: m.scoreA, scoreB: m.scoreB,
+          serverNum: settings.scoringMode === "sideout" ? m.serverNum : 0
+        })}
         <div class="ref-courts-split">
           ${renderSide(leftSide)}
           ${renderSide(rightSide)}
@@ -693,6 +850,7 @@ PB.referee = {
         <div class="ref-tools-grid">
           <button class="btn btn-warning" onclick="PB.referee.sideOut()">Lỗi giao bóng</button>
           <button class="btn btn-secondary" onclick="PB.referee.undo()" ${!m.history?.length ? "disabled" : ""}>Hoàn tác</button>
+          <button class="btn btn-secondary" onclick="PB.referee.openTossModal()">Bốc thăm</button>
           <button class="btn btn-secondary" onclick="PB.referee.swapSides()">Đảo bên sân</button>
           <button class="btn btn-secondary" onclick="PB.referee.startMedicalTimer()">Y tế (15p)</button>
           <button class="btn btn-secondary" onclick="PB.referee.walkoverPrompt()">Bỏ cuộc (WO)</button>

@@ -109,9 +109,9 @@ PB.app = {
       btnAuth.onclick = () => this.openAuthModal();
     }
 
-    PB.viewer.renderAll();
-    PB.referee.render();
-    PB.admin.render();
+    if (this.currentTab === "live" || this.currentTab === "standings") PB.viewer.renderAll();
+    else if (this.currentTab === "referee") PB.referee.render();
+    else if (this.currentTab === "admin") PB.admin.render();
   },
 
   switchTab(tab) {

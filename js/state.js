@@ -112,12 +112,59 @@ PB.state = {
 
   save() {
     if (!this.data) return;
+    // Cập nhật giao diện tức thì (Optimistic UI) để trọng tài bấm nhạy 0ms
+    this.notify();
     if (this.isCloud && this.dbRef) {
       this.dbRef.set(this.data);
     } else {
       localStorage.setItem(PB.config.localStorageKey, JSON.stringify(this.data));
-      this.notify();
     }
+  },
+
+  // Lấy danh sách tên từng VĐV tham gia trong 1 trận đấu
+  getMatchPlayerNames(match) {
+    const names = new Set();
+    if (!match) return names;
+    const addFromTeam = (tid) => {
+      if (!tid) return;
+      const t = this.getTeam(tid);
+      if (!t) return;
+      names.add("TEAM:" + tid);
+      if (t.roster && t.roster.length) {
+        t.roster.forEach((p) => { if (p.name) names.add(p.name.trim().toLowerCase()); });
+      } else if (t.name) {
+        t.name.split(/[\/,&\-]+/).forEach((part) => {
+          const clean = part.trim().toLowerCase();
+          if (clean.length >= 2) names.add(clean);
+        });
+      }
+    };
+    addFromTeam(match.teamA);
+    addFromTeam(match.teamB);
+    return names;
+  },
+
+  // Kiểm tra xem trận này có VĐV / Đội nào đang thi đấu LIVE ở sân khác không
+  findLiveConflict(targetMatchId) {
+    const target = this.data.matches.find((m) => m.id === targetMatchId);
+    if (!target) return null;
+    const targetPlayers = this.getMatchPlayerNames(target);
+    const liveOthers = this.data.matches.filter((m) => m.id !== targetMatchId && m.status === "live");
+
+    for (const other of liveOthers) {
+      const otherPlayers = this.getMatchPlayerNames(other);
+      for (const p of targetPlayers) {
+        if (otherPlayers.has(p)) {
+          const display = p.startsWith("TEAM:") ? this.getTeamName(p.slice(5)) : p.toUpperCase();
+          return {
+            match: other,
+            court: other.court || "?",
+            who: display
+          };
+        }
+      }
+    }
+    return null;
   },
 
   subscribe(fn) {

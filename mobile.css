@@ -47,9 +47,8 @@ body {
 .topbar-meta {
   gap: 4px !important;
   margin-top: 2px !important;
-  flex-wrap: nowrap !important;
-  overflow-x: auto;
-  scrollbar-width: none;
+  flex-wrap: wrap !important;
+  overflow: visible !important;
 }
 .topbar-meta::-webkit-scrollbar { display: none; }
 .chip {
@@ -223,20 +222,20 @@ table.data-table th:nth-child(2) { background: var(--surface-sub); z-index: 4; }
 
 /* 5. TAB 3: TRỌNG TÀI (ĐĂNG KÝ ĐỘI HÌNH + CHẤM ĐIỂM) */
 .roster-quota-bar {
-  flex-wrap: nowrap !important;
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding: 6px 8px !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
   gap: 5px !important;
+  padding: 6px !important;
   margin-bottom: 8px !important;
+  overflow: visible !important;
 }
-.roster-quota-bar::-webkit-scrollbar { display: none; }
 .quota-chip {
+  text-align: center !important;
   white-space: nowrap !important;
-  flex-shrink: 0 !important;
-  font-size: 0.72rem !important;
-  padding: 3px 8px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: clamp(0.66rem, 2.7vw, 0.74rem) !important;
+  padding: 4px 4px !important;
 }
 .lineup-console {
   padding: 10px !important;
@@ -305,4 +304,21 @@ table.data-table th:nth-child(2) { background: var(--surface-sub); z-index: 4; }
   .brand-info h1 { font-size: 0.82rem !important; }
   .role-pill { display: none; }
   .nav-lbl { font-size: 0.62rem !important; }
+}
+/* Chống tràn ngang tuyệt đối cho mọi nút & ô chọn ở các tab khác */
+.match-item, .card, .toolbar-row, .section-header {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.match-item > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.lineup-console .card {
+  margin-bottom: 8px !important;
+  padding: 9px 10px !important;
+}
+.lineup-console input.input {
+  font-size: 0.86rem !important;
+  padding: 8px 10px !important;
 }

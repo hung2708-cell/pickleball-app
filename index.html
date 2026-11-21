@@ -2,8 +2,13 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Pickleball Tournament Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Bính Dần Pickleball — Quản Lý Giải Đấu</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="apple-touch-icon" href="logo.png" />
+  <meta name="theme-color" content="#1c120c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="stylesheet" href="style.css" />
   <!-- Firebase Compat SDK (Chạy tốt trên GitHub Pages & mở trực tiếp không cần build) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -13,7 +18,7 @@
   <!-- TOP HEADER -->
   <header class="topbar">
     <div class="topbar-left">
-      <div class="brand-logo">🏓</div>
+      <div class="brand-logo"><img src="logo.png" alt="Bính Dần Pickleball" /></div>
       <div>
         <h1 id="headerTournamentName">Giải Pickleball Phong Trào</h1>
         <div class="topbar-meta">
@@ -28,12 +33,20 @@
     </div>
   </header>
 
-  <!-- NAVIGATION TABS -->
-  <nav class="main-nav">
-    <button class="nav-btn active" data-tab="live" onclick="PB.app.switchTab('live')">📡 Trực tiếp</button>
-    <button class="nav-btn" data-tab="standings" onclick="PB.app.switchTab('standings')">🏆 Bảng & Nhánh</button>
-    <button class="nav-btn" data-tab="referee" onclick="PB.app.switchTab('referee')">⚖️ Trọng tài</button>
-    <button class="nav-btn" data-tab="admin" onclick="PB.app.switchTab('admin')">⚙️ Quản lý</button>
+  <!-- NAVIGATION TABS (Desktop: Glass Bar | Mobile: iOS 27 Floating Liquid Glass Tab Bar) -->
+  <nav class="main-nav" aria-label="Điều hướng chính">
+    <button class="nav-btn active" data-tab="live" onclick="PB.app.switchTab('live')">
+      <span class="nav-ico">📡</span><span class="nav-lbl">Trực tiếp</span>
+    </button>
+    <button class="nav-btn" data-tab="standings" onclick="PB.app.switchTab('standings')">
+      <span class="nav-ico">🏆</span><span class="nav-lbl">Bảng & Nhánh</span>
+    </button>
+    <button class="nav-btn" data-tab="referee" onclick="PB.app.switchTab('referee')">
+      <span class="nav-ico">⚖️</span><span class="nav-lbl">Trọng tài</span>
+    </button>
+    <button class="nav-btn" data-tab="admin" onclick="PB.app.switchTab('admin')">
+      <span class="nav-ico">⚙️</span><span class="nav-lbl">Quản lý</span>
+    </button>
   </nav>
 
   <!-- MAIN CONTENT -->

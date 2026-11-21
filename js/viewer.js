@@ -147,15 +147,23 @@ PB.viewer = {
       searchBox.classList.add("hidden");
     }
 
-    // 2. Các trận đang đánh Live
+    // 2. Các trận đang đánh Live + Các trận tiếp theo đã được tự động gán sân
     const liveMatches = data.matches.filter((m) => m.status === "live");
-    document.getElementById("liveCountLabel").textContent = `${liveMatches.length} trận đang đánh`;
+    const queuedOnCourt = data.matches
+      .filter((m) => m.status === "pending" && Number(m.court) > 0 && m.teamA && m.teamB)
+      .sort((a, b) => Number(a.court) - Number(b.court));
+    const displayMatches = [...liveMatches, ...queuedOnCourt];
+
+    document.getElementById("liveCountLabel").textContent =
+      liveMatches.length
+        ? `${liveMatches.length} đang đánh${queuedOnCourt.length ? ` • ${queuedOnCourt.length} chờ vào sân` : ""}`
+        : (queuedOnCourt.length ? `${queuedOnCourt.length} trận đã gán sân chờ đánh` : "0 trận đang đánh");
     const grid = document.getElementById("liveCourtsGrid");
 
-    if (!liveMatches.length) {
-      grid.innerHTML = `<div class="card muted text-center">Hiện chưa có trận nào đang thi đấu trên sân.</div>`;
+    if (!displayMatches.length) {
+      grid.innerHTML = `<div class="card muted text-center">Hiện chưa có trận nào trên sân.</div>`;
     } else {
-      grid.innerHTML = liveMatches.map((m) => {
+      grid.innerHTML = displayMatches.map((m) => {
         const nameA = PB.state.getTeamName(m.teamA);
         const nameB = PB.state.getTeamName(m.teamB);
         const callout = PB.rules.getCallout(m, data.settings);
@@ -167,7 +175,7 @@ PB.viewer = {
                 <span class="court-pill">Sân ${m.court || "?"}</span> <span class="muted" style="margin-left:6px;">${PB.app.escape(m.roundName)}</span>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
-                <span class="badge badge-live">● LIVE</span>
+                ${m.status === "live" ? '<span class="badge badge-live">● LIVE</span>' : '<span class="badge badge-serieA">Sắp đánh</span>'}
                 <button class="btn btn-sm btn-secondary" onclick="PB.viewer.openTv('${m.id}')" title="Mở chế độ màn hình TV">TV</button>
               </div>
             </div>

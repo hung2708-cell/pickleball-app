@@ -200,6 +200,8 @@ PB.app = {
       // Nếu lần đầu mở chưa có dữ liệu, tự nạp mẫu để dễ trải nghiệm ngay
       if (!PB.state.data.teams.length && !PB.state.data.matches.length) {
         PB.state.loadSampleData();
+      } else if (PB.auth.isReferee() && PB.bracket.ensureAutoSchedule()) {
+        PB.state.save();
       }
       // Khôi phục đúng vị trí trước khi F5
       const saved = this.loadUiState();

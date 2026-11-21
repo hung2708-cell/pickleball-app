@@ -230,6 +230,7 @@ PB.bracket = {
 
   // Tự động đẩy đội từ các bảng đã xong sang sơ đồ Serie A & Serie B
   syncGroupWinnersToBracket(force = false) {
+    let changed = false;
     const standings = this.calculateStandings();
     const gNames = Object.keys(standings).sort();
     const allMatches = PB.state.data.matches;
@@ -238,6 +239,7 @@ PB.bracket = {
     if (!hasKO && gNames.length) {
       const skel = this._buildKnockoutSkeleton(gNames);
       PB.state.data.matches = [...allMatches, ...skel];
+      changed = true;
     }
 
     const completedGroups = new Set();
@@ -251,13 +253,14 @@ PB.bracket = {
     PB.state.data.matches.filter((m) => m.stage !== "group" && m.status === "pending").forEach((m) => {
       if (m.sourceA && completedGroups.has(m.sourceA.group)) {
         const row = standings[m.sourceA.group]?.[m.sourceA.rank - 1];
-        if (row) m.teamA = row.teamId;
+        if (row && m.teamA !== row.teamId) { m.teamA = row.teamId; changed = true; }
       }
       if (m.sourceB && completedGroups.has(m.sourceB.group)) {
         const row = standings[m.sourceB.group]?.[m.sourceB.rank - 1];
-        if (row) m.teamB = row.teamId;
+        if (row && m.teamB !== row.teamId) { m.teamB = row.teamId; changed = true; }
       }
     });
+    return changed;
   },
 
   generateKnockoutFromGroups() {
@@ -275,17 +278,20 @@ PB.bracket = {
   },
 
   propagateWinner(match) {
-    if (!match.nextMatchId || !match.winner || match.winner === "DRAW") return;
+    if (!match.nextMatchId || !match.winner || match.winner === "DRAW") return false;
     const nextMatch = PB.state.data.matches.find((m) => m.id === match.nextMatchId);
-    if (!nextMatch) return;
+    if (!nextMatch) return false;
     const winnerTeamId = match.winner === "A" ? match.teamA : match.teamB;
-    if (match.nextSlot === "A") nextMatch.teamA = winnerTeamId;
-    if (match.nextSlot === "B") nextMatch.teamB = winnerTeamId;
+    let changed = false;
+    if (match.nextSlot === "A" && nextMatch.teamA !== winnerTeamId) { nextMatch.teamA = winnerTeamId; changed = true; }
+    if (match.nextSlot === "B" && nextMatch.teamB !== winnerTeamId) { nextMatch.teamB = winnerTeamId; changed = true; }
+    return changed;
   },
 
   // Tự động dọn xung đột & đẩy các trận chưa đánh (đủ 2 đội) vào các sân trống
   // Đảm bảo tuyệt đối KHÔNG có VĐV nào bị xếp trên 2 sân cùng lúc
   autoAssignCourts() {
+    let changed = false;
     const numCourts = Number(PB.state.data.settings.numCourts) || 4;
     const matches = PB.state.data.matches;
 
@@ -311,6 +317,7 @@ PB.bracket = {
       }
       if (hasOverlap) {
         m.court = 0; // Gỡ sân bị trùng
+        changed = true;
       } else {
         busyCourts.add(c);
         players.forEach((p) => busyPlayers.add(p));
@@ -318,7 +325,6 @@ PB.bracket = {
     });
 
     // Bước 3: Lấp đầy tất cả các sân đang trống bằng các trận pending đủ 2 đội & VĐV đang rảnh
-    // Ưu tiên: Vòng bảng trước -> Vòng loại trực tiếp (đã đủ 2 đội)
     const candidates = matches.filter((m) => m.status === "pending" && !m.court && m.teamA && m.teamB);
 
     for (let c = 1; c <= numCourts; c++) {
@@ -333,8 +339,22 @@ PB.bracket = {
         nextReady.court = c;
         busyCourts.add(c);
         PB.state.getMatchPlayerNames(nextReady).forEach((p) => busyPlayers.add(p));
+        changed = true;
       }
     }
+    return changed;
+  },
+
+  // Tự động kiểm tra toàn bộ giải (nhảy vòng + gán sân trống) nếu có thay đổi thì lưu ngay
+  ensureAutoSchedule() {
+    if (!PB.state.data || !PB.state.data.matches || !PB.state.data.matches.length) return false;
+    let changed = this.syncGroupWinnersToBracket(false);
+    // Đẩy tiếp đội thắng ở các trận KO đã kết thúc (phòng trường hợp dữ liệu cũ)
+    PB.state.data.matches.filter((m) => m.stage !== "group" && m.status === "finished").forEach((m) => {
+      if (this.propagateWinner(m)) changed = true;
+    });
+    if (this.autoAssignCourts()) changed = true;
+    return changed;
   },
 
   // Gọi mỗi khi có 1 trận kết thúc -> Tự nhảy vòng/nhánh + Tự đẩy trận tiếp theo vào sân trống

@@ -43,6 +43,70 @@ PB.viewer = {
     if (this.activeTvMatchId) this.renderTvOverlay(this.activeTvMatchId);
   },
 
+  _renderTeamSubMatchesLiveHtml(m) {
+    if (m.matchType !== "team" || !Array.isArray(m.subMatches)) return "";
+    const nA = PB.state.getTeamName(m.teamA);
+    const nB = PB.state.getTeamName(m.teamB);
+    const rows = m.subMatches.map((sm) => {
+      const pA = (sm.playersA || []).filter(Boolean).join(" / ") || nA;
+      const pB = (sm.playersB || []).filter(Boolean).join(" / ") || nB;
+      const cls = sm.status === "live" ? "is-live" : sm.status === "finished" ? "is-done" : "";
+      const stBadge = sm.status === "live"
+        ? '<span class="badge badge-live" style="padding:1px 6px;font-size:0.64rem;">● LIVE</span>'
+        : sm.status === "finished"
+          ? '<span class="badge badge-done" style="padding:1px 6px;font-size:0.64rem;">Xong</span>'
+          : '<span class="muted" style="font-size:0.68rem;">Chờ</span>';
+      const scoreTxt = sm.status === "pending" ? "vs" : `${sm.scoreA} - ${sm.scoreB}`;
+      return `
+        <div class="team-sub-row ${cls}">
+          <div class="team-sub-info">
+            <div class="team-sub-title">
+              <span>${PB.app.escape(sm.label)}</span>
+              ${stBadge}
+            </div>
+            <div class="team-sub-players">
+              <span style="${sm.winner === "A" ? "color:var(--emerald);font-weight:800;" : ""}">${PB.app.escape(pA)}</span>
+              <span class="muted"> vs </span>
+              <span style="${sm.winner === "B" ? "color:var(--emerald);font-weight:800;" : ""}">${PB.app.escape(pB)}</span>
+            </div>
+          </div>
+          <div class="team-sub-score">${scoreTxt}</div>
+        </div>
+      `;
+    }).join("");
+
+    let dbRow = "";
+    if (m.dreambreaker && m.dreambreaker.status !== "pending") {
+      const db = m.dreambreaker;
+      const cls = db.status === "live" ? "is-live" : "is-done";
+      dbRow = `
+        <div class="team-sub-row ${cls}">
+          <div class="team-sub-info">
+            <div class="team-sub-title">
+              <span>Trận Đơn (Dreambreaker)</span>
+              ${db.status === "live" ? '<span class="badge badge-live" style="padding:1px 6px;font-size:0.64rem;">● LIVE</span>' : '<span class="badge badge-done" style="padding:1px 6px;font-size:0.64rem;">Xong</span>'}
+            </div>
+          </div>
+          <div class="team-sub-score">${db.scoreA} - ${db.scoreB}</div>
+        </div>
+      `;
+    }
+
+    return `<div class="team-sub-list">${rows}${dbRow}</div>`;
+  },
+
+  _renderTeamSubMiniStrip(m) {
+    if (m.matchType !== "team" || !Array.isArray(m.subMatches)) return "";
+    if (m.status === "pending" && !m.lineupLocked) return "";
+    const shortLabels = ["Đôi Nữ", "Đôi Nam", "Nam Nữ 1", "Nam Nữ 2"];
+    const chips = m.subMatches.map((sm, i) => {
+      const cls = sm.status === "live" ? "is-live" : sm.status === "finished" ? "is-done" : "";
+      const sc = sm.status === "pending" ? "Chờ" : `${sm.scoreA}-${sm.scoreB}`;
+      return `<span class="team-sub-mini-chip ${cls}">${shortLabels[i] || sm.code}: ${sc}${sm.status === "live" ? " ●" : ""}</span>`;
+    }).join("");
+    return `<div class="team-sub-mini-strip">${chips}</div>`;
+  },
+
   renderLive() {
     const data = PB.state.data;
     if (!data) return;
@@ -106,10 +170,11 @@ PB.viewer = {
               <div class="score-num">${m.scoreB}</div>
             </div>
             <div class="muted" style="display:flex;justify-content:space-between;margin-top:6px;">
-              <span>Đọc điểm: <strong>${callout}</strong></span>
-              <span>Set: ${m.setsA} - ${m.setsB}</span>
+              <span>${m.matchType === "team" ? "Tổng tỷ số trận đôi" : "Đọc điểm"}: <strong>${callout}</strong></span>
+              <span>${m.matchType === "team" ? "Đồng đội (4 trận)" : `Set: ${m.setsA} - ${m.setsB}`}</span>
             </div>
             ${setsHtml}
+            ${this._renderTeamSubMatchesLiveHtml(m)}
           </div>
         `;
       }).join("");
@@ -155,6 +220,7 @@ PB.viewer = {
             <span class="muted"> vs </span>
             <span style="${m.winner === "B" ? "color:var(--success)" : ""}">${PB.app.escape(nameB)}</span>
           </div>
+          ${this._renderTeamSubMiniStrip(m)}
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="match-score-pill">${scoreText}</div>

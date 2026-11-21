@@ -167,32 +167,33 @@
     </section>
   </main>
 
-  <!-- AUTH MODAL -->
-  <div id="authModal" class="modal hidden">
+  <!-- AUTH MODAL (iOS 27 Liquid Glass Sheet) -->
+  <div id="authModal" class="modal modal-ios27 hidden">
     <div class="modal-backdrop" onclick="PB.app.closeModal('authModal')"></div>
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>Đăng nhập phân quyền</h3>
-        <button class="icon-btn" onclick="PB.app.closeModal('authModal')">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>Vai trò truy cập</label>
-          <select id="authRoleSelect" class="input">
-            <option value="referee">Trọng tài chấm điểm</option>
-            <option value="admin">Ban Tổ Chức (Quản lý)</option>
-          </select>
+    <div class="modal-card ios27-sheet">
+      <div class="ios27-grabber"></div>
+      <div class="ios27-auth-head">
+        <div class="ios27-lock-ring">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
-        <div class="form-group">
-          <label>Mật khẩu</label>
-          <input type="password" id="authPasswordInput" class="input" placeholder="Nhập mật khẩu..." onkeydown="if(event.key==='Enter') PB.app.submitLogin()" />
-        </div>
-        <p class="hint-text">Mặc định: Trọng tài <code>tt123</code> • Quản lý <code>admin123</code></p>
-        <div id="authErrorMsg" class="error-text hidden"></div>
+        <h3>Xác thực quyền truy cập</h3>
+        <p class="muted" style="margin:4px 0 0;">Chọn vai trò và nhập mật khẩu để tiếp tục</p>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="PB.app.closeModal('authModal')">Hủy</button>
-        <button class="btn btn-primary" onclick="PB.app.submitLogin()">Đăng nhập</button>
+      <div class="modal-body" style="padding-top:8px;">
+        <input type="hidden" id="authRoleSelect" value="referee" />
+        <div class="ios27-segment" role="tablist">
+          <button type="button" class="ios27-seg-btn active" id="segRoleReferee" onclick="PB.app.selectAuthRole('referee')">Trọng tài</button>
+          <button type="button" class="ios27-seg-btn" id="segRoleAdmin" onclick="PB.app.selectAuthRole('admin')">Quản lý (BTC)</button>
+        </div>
+
+        <div class="ios27-pass-wrap">
+          <input type="password" id="authPasswordInput" class="ios27-pass-input" placeholder="Nhập mật khẩu..." autocomplete="current-password" onkeydown="if(event.key==='Enter') PB.app.submitLogin()" />
+        </div>
+        <div id="authErrorMsg" class="error-text text-center hidden"></div>
+      </div>
+      <div class="ios27-sheet-actions">
+        <button class="btn ios27-btn-primary" onclick="PB.app.submitLogin()">Mở khóa</button>
+        <button class="btn ios27-btn-cancel" onclick="PB.app.closeModal('authModal')">Hủy</button>
       </div>
     </div>
   </div>
@@ -208,6 +209,25 @@
       <div class="modal-body" id="infoModalBody"></div>
       <div class="modal-footer">
         <button class="btn btn-primary" onclick="PB.app.closeModal('infoModal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- iOS 27 UNIVERSAL DIALOG (Thay thế alert / confirm / prompt) -->
+  <div id="iosDialogModal" class="modal modal-ios27 hidden" style="z-index:250;">
+    <div class="modal-backdrop" id="iosDialogBackdrop"></div>
+    <div class="modal-card ios27-sheet ios27-alert-sheet">
+      <div class="ios27-grabber"></div>
+      <div class="ios27-auth-head" style="padding-bottom:6px;">
+        <h3 id="iosDialogTitle" style="margin-top:4px;">Xác nhận</h3>
+        <p id="iosDialogMsg" class="muted" style="margin:6px 0 0;white-space:pre-line;"></p>
+      </div>
+      <div id="iosDialogInputWrap" class="modal-body hidden" style="padding:8px 18px 12px;">
+        <input type="text" id="iosDialogInput" class="ios27-pass-input" style="font-size:0.96rem;letter-spacing:0;text-align:left;" />
+      </div>
+      <div class="ios27-sheet-actions" style="padding-top:10px;">
+        <button id="iosDialogOkBtn" class="btn ios27-btn-primary">Xác nhận</button>
+        <button id="iosDialogCancelBtn" class="btn ios27-btn-cancel">Hủy</button>
       </div>
     </div>
   </div>

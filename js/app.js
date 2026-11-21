@@ -58,6 +58,22 @@ PB.ui = {
 PB.app = {
   currentTab: "live",
 
+  saveUiState(patch) {
+    try {
+      const cur = JSON.parse(localStorage.getItem("pb_ui_state_v1") || "{}");
+      localStorage.setItem("pb_ui_state_v1", JSON.stringify({ ...cur, ...patch }));
+    } catch {}
+  },
+
+  loadUiState() {
+    try {
+      return JSON.parse(localStorage.getItem("pb_ui_state_v1") || "{}");
+    } catch {
+      return {};
+    }
+  },
+
+
   init() {
     PB.state.subscribe(() => this.renderAll());
     PB.state.init(() => {
@@ -65,7 +81,22 @@ PB.app = {
       if (!PB.state.data.teams.length && !PB.state.data.matches.length) {
         PB.state.loadSampleData();
       }
-      this.renderAll();
+      // Khôi phục đúng vị trí trước khi F5
+      const saved = this.loadUiState();
+      if (saved.standingView) PB.viewer.switchStandingView(saved.standingView, true);
+      if (saved.adminSubTab) PB.admin.switchSubTab(saved.adminSubTab, true);
+      if (saved.refActiveMatchId && PB.auth.isReferee()) {
+        const exists = PB.state.data.matches.find((m) => m.id === saved.refActiveMatchId && m.status !== "finished");
+        if (exists) {
+          PB.referee.activeMatchId = saved.refActiveMatchId;
+          PB.referee.activeSubIdx = saved.refActiveSubIdx !== undefined ? saved.refActiveSubIdx : null;
+        }
+      }
+      if (saved.currentTab && ["live", "standings", "referee", "admin"].includes(saved.currentTab)) {
+        this.switchTab(saved.currentTab, true);
+      } else {
+        this.renderAll();
+      }
     });
   },
 
@@ -114,8 +145,9 @@ PB.app = {
     else if (this.currentTab === "admin") PB.admin.render();
   },
 
-  switchTab(tab) {
+  switchTab(tab, silent = false) {
     this.currentTab = tab;
+    if (!silent) this.saveUiState({ currentTab: tab });
     if (tab !== "referee") document.body.classList.remove("ref-scoring-mode");
     document.querySelectorAll(".nav-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.tab === tab);

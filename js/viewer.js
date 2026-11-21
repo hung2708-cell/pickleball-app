@@ -164,8 +164,9 @@ PB.viewer = {
     `;
   },
 
-  switchStandingView(view) {
+  switchStandingView(view, silent = false) {
     this.standingView = view;
+    if (!silent && PB.app.saveUiState) PB.app.saveUiState({ standingView: view });
     document.getElementById("subtabGroupsBtn").classList.toggle("active", view === "groups");
     document.getElementById("subtabBracketBtn").classList.toggle("active", view === "bracket");
     document.getElementById("standingsGroupsView").classList.toggle("hidden", view !== "groups");

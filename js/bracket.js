@@ -117,7 +117,7 @@ PB.bracket = {
         }));
       } else if (size === 8) {
         const fId = `${stageKey}_F`, sf1 = `${stageKey}_SF1`, sf2 = `${stageKey}_SF2`;
-        const pairs = [[0,7,sf1,"A"], [3,4,sf1,"B"], [1,6,sf2,"A"], [2,5,sf2,"B"]];
+        const pairs = [[0,5,sf1,"A"], [2,7,sf1,"B"], [1,4,sf2,"A"], [3,6,sf2,"B"]];
         pairs.forEach(([i, j, nxt, slot], idx) => {
           ko.push(PB.rules.createMatch({
             id: `${stageKey}_QF${idx+1}`, stage: stageKey, roundName: `${titlePrefix} - Tứ kết ${idx+1}`,
@@ -133,14 +133,14 @@ PB.bracket = {
 
     const rank1 = gNames.map((g) => ({ group: g, rank: 1, label: `Nhất ${g}` }));
     const rank2 = gNames.map((g) => ({ group: g, rank: 2, label: `Nhì ${g}` }));
-    const serieASlots = [...rank1, ...rank2.reverse()];
+    const serieASlots = [...rank1, ...rank2];
 
     if (mode === "serieAB") {
       makeTree("serieA", "Serie A", serieASlots);
       const groups = this.getGroups();
       const rank3 = gNames.filter((g) => (groups[g]?.length || 0) >= 3).map((g) => ({ group: g, rank: 3, label: `Ba ${g}` }));
       const rank4 = gNames.filter((g) => (groups[g]?.length || 0) >= 4).map((g) => ({ group: g, rank: 4, label: `Tư ${g}` }));
-      const serieBSlots = [...rank3, ...rank4.reverse()];
+      const serieBSlots = [...rank3, ...rank4];
       if (serieBSlots.length >= 2) makeTree("serieB", "Serie B", serieBSlots);
     } else {
       makeTree("knockout", "Vòng Loại", serieASlots);

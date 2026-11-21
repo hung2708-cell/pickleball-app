@@ -103,6 +103,7 @@ PB.referee = {
     }
     this.activeMatchId = matchId;
     this.activeSubIdx = null;
+    PB.app.saveUiState({ refActiveMatchId: matchId, refActiveSubIdx: null });
     this.lineupStep = "A";
     this.lineupDraft = null;
     if (m.matchType !== "team" && m.status === "pending") {
@@ -436,6 +437,7 @@ PB.referee = {
     this.stopTimer();
     this.activeMatchId = null;
     this.activeSubIdx = null;
+    PB.app.saveUiState({ refActiveMatchId: null, refActiveSubIdx: null });
     this.renderList();
   },
 
@@ -747,12 +749,14 @@ PB.referee = {
 
   openSubMatch(idx) {
     this.activeSubIdx = idx;
+    PB.app.saveUiState({ refActiveSubIdx: idx });
     this.renderConsole();
   },
 
   backToTeamHub() {
     this.stopTimer();
     this.activeSubIdx = null;
+    PB.app.saveUiState({ refActiveSubIdx: null });
     this.renderConsole();
   },
 
@@ -888,6 +892,7 @@ PB.referee = {
     PB.app.closeModal("iosPickerModal");
     this.stopTimer();
     this.activeSubIdx = (val === "db") ? "db" : Number(val);
+    PB.app.saveUiState({ refActiveSubIdx: this.activeSubIdx });
     this.renderConsole();
   },
 

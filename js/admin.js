@@ -22,8 +22,9 @@ PB.admin = {
     this.renderSettingsSub();
   },
 
-  switchSubTab(tab) {
+  switchSubTab(tab, silent = false) {
     this.subTab = tab;
+    if (!silent && PB.app.saveUiState) PB.app.saveUiState({ adminSubTab: tab });
     document.querySelectorAll("[data-admintab]").forEach((b) => {
       b.classList.toggle("active", b.dataset.admintab === tab);
     });

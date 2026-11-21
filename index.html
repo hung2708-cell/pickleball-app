@@ -12,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=21" />
-  <link rel="stylesheet" href="mobile.css?v=21" media="(max-width: 820px)" />
+  <link rel="stylesheet" href="style.css?v=22" />
+  <link rel="stylesheet" href="mobile.css?v=22" media="(max-width: 820px)" />
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
@@ -45,7 +45,8 @@
 
   <!-- NAVIGATION (Desktop: Clean Top Tabs | Mobile: Floating iOS Bottom Bar) -->
   <nav class="main-nav" aria-label="Điều hướng chính">
-    <div class="main-nav-inner">
+    <div class="main-nav-inner" id="mainNavInner">
+      <div class="nav-slider-pill" id="navSliderPill"></div>
       <button class="nav-btn active" data-tab="live" onclick="PB.app.switchTab('live')">
         <svg class="nav-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
         <span class="nav-lbl">Trực tiếp</span>
@@ -281,13 +282,13 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- MODULAR SCRIPTS -->
-  <script src="js/config.js?v=21"></script>
-  <script src="js/state.js?v=21"></script>
-  <script src="js/rules.js?v=21"></script>
-  <script src="js/bracket.js?v=21"></script>
-  <script src="js/viewer.js?v=21"></script>
-  <script src="js/referee.js?v=21"></script>
-  <script src="js/admin.js?v=21"></script>
-  <script src="js/app.js?v=21"></script>
+  <script src="js/config.js?v=22"></script>
+  <script src="js/state.js?v=22"></script>
+  <script src="js/rules.js?v=22"></script>
+  <script src="js/bracket.js?v=22"></script>
+  <script src="js/viewer.js?v=22"></script>
+  <script src="js/referee.js?v=22"></script>
+  <script src="js/admin.js?v=22"></script>
+  <script src="js/app.js?v=22"></script>
 </body>
 </html>

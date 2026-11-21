@@ -612,14 +612,12 @@ PB.referee = {
         return true;
       });
 
+      const displayTxt = curVal ? `${curVal} (${counts[curVal] || 0}/2)` : `Chọn ${genderLabel}`;
       return `
-        <select class="input-sm" style="width:100%;" onchange="PB.referee.onLineupSelect('${side}', ${subIdx}, ${slotIdx}, this.value)">
-          <option value="">Chọn ${genderLabel}</option>
-          ${available.map((p) => {
-            const c = counts[p.name] || 0;
-            return `<option value="${PB.app.escape(p.name)}" ${curVal === p.name ? "selected" : ""}>${PB.app.escape(p.name)} (${c}/2 trận)</option>`;
-          }).join("")}
-        </select>
+        <button type="button" class="ios27-select-btn" onclick="PB.referee.openLineupPlayerPicker('${side}', ${subIdx}, ${slotIdx}, '${reqGender}')">
+          <span class="sel-txt ${curVal ? "" : "is-placeholder"}">${PB.app.escape(displayTxt)}</span>
+          <span class="sel-chev">▾</span>
+        </button>
       `;
     };
 

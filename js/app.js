@@ -52,6 +52,61 @@ PB.ui = {
   },
   prompt(message, defaultValue = "", title = "Nhập thông tin") {
     return this._open({ title, message, type: "prompt", defaultValue });
+  },
+  openPicker({ title = "Lựa chọn", options = [], value = "", onSelect }) {
+    const modal = document.getElementById("iosPickerModal");
+    const titleEl = document.getElementById("iosPickerTitle");
+    const listEl = document.getElementById("iosPickerList");
+    if (!modal || !listEl) return;
+    titleEl.textContent = title;
+    this._pickerCallback = onSelect;
+    listEl.innerHTML = options.map((opt, idx) => {
+      const val = typeof opt === "object" ? opt.value : opt;
+      const lbl = typeof opt === "object" ? opt.label : opt;
+      const sub = typeof opt === "object" ? (opt.sub || "") : "";
+      const active = String(val) === String(value);
+      return `
+        <button type="button" class="ios27-picker-item ${active ? "active" : ""}" onclick="PB.ui._pickOption(${idx})">
+          <div>
+            <div>${PB.app.escape(lbl)}</div>
+            ${sub ? `<div class="muted" style="font-size:0.74rem;">${PB.app.escape(sub)}</div>` : ""}
+          </div>
+          <span class="ios27-picker-check">${active ? "✓" : ""}</span>
+        </button>
+      `;
+    }).join("");
+    this._pickerOptions = options;
+    modal.classList.remove("hidden");
+  },
+  _pickOption(idx) {
+    const opt = (this._pickerOptions || [])[idx];
+    const val = typeof opt === "object" ? opt.value : opt;
+    document.getElementById("iosPickerModal")?.classList.add("hidden");
+    if (this._pickerCallback) this._pickerCallback(val);
+  },
+  initGlobalIosSelects() {
+    // Trên điện thoại, chặn menu <select> mặc định của Android/iOS và mở Popup iOS 27 thống nhất
+    document.addEventListener("mousedown", (e) => {
+      if (window.innerWidth > 820) return;
+      const sel = e.target.closest("select");
+      if (!sel || sel.disabled) return;
+      e.preventDefault();
+      sel.blur();
+      const opts = Array.from(sel.options).map((o) => ({ value: o.value, label: o.textContent }));
+      const labelEl = sel.closest(".form-group")?.querySelector("label");
+      const title = labelEl ? labelEl.textContent.trim() : "Lựa chọn";
+      this.openPicker({
+        title,
+        options: opts,
+        value: sel.value,
+        onSelect: (newVal) => {
+          if (sel.value !== newVal) {
+            sel.value = newVal;
+            sel.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        }
+      });
+    });
   }
 };
 
@@ -74,7 +129,72 @@ PB.app = {
   },
 
 
+  _navTabs: ["live", "standings", "referee", "admin"],
+
+  updateNavSlider(tab) {
+    const pill = document.getElementById("navSliderPill");
+    if (!pill) return;
+    const idx = Math.max(0, this._navTabs.indexOf(tab || this.currentTab));
+    pill.classList.remove("dragging");
+    pill.style.transform = `translateX(${idx * 100}%)`;
+  },
+
+  initMobileNavSlider() {
+    const navInner = document.getElementById("mainNavInner");
+    const pill = document.getElementById("navSliderPill");
+    if (!navInner || !pill) return;
+
+    let isDragging = false;
+    let startX = 0;
+    let navRect = null;
+
+    const getIdxFromX = (clientX) => {
+      const rel = Math.max(0, Math.min(navRect.width - 10, clientX - navRect.left - 5));
+      const tabW = (navRect.width - 10) / 4;
+      return Math.max(0, Math.min(3, Math.floor(rel / tabW)));
+    };
+
+    navInner.addEventListener("touchstart", (e) => {
+      if (window.innerWidth > 820) return;
+      navRect = navInner.getBoundingClientRect();
+      startX = e.touches[0].clientX;
+      isDragging = false;
+    }, { passive: true });
+
+    navInner.addEventListener("touchmove", (e) => {
+      if (window.innerWidth > 820 || !navRect) return;
+      const curX = e.touches[0].clientX;
+      if (!isDragging && Math.abs(curX - startX) > 10) {
+        isDragging = true;
+        pill.classList.add("dragging");
+      }
+      if (isDragging) {
+        const tabW = (navRect.width - 10) / 4;
+        const maxTx = tabW * 3;
+        const rawTx = (curX - navRect.left - 5) - (tabW / 2);
+        const clamped = Math.max(0, Math.min(maxTx, rawTx));
+        pill.style.transform = `translateX(${clamped}px)`;
+      }
+    }, { passive: true });
+
+    navInner.addEventListener("touchend", (e) => {
+      if (!isDragging || !navRect) return;
+      isDragging = false;
+      const endX = e.changedTouches[0].clientX;
+      const targetIdx = getIdxFromX(endX);
+      const targetTab = this._navTabs[targetIdx];
+      pill.classList.remove("dragging");
+      if (targetTab && targetTab !== this.currentTab) {
+        this.switchTab(targetTab);
+      } else {
+        this.updateNavSlider(this.currentTab);
+      }
+    });
+  },
+
   init() {
+    PB.ui.initGlobalIosSelects();
+    this.initMobileNavSlider();
     PB.state.subscribe(() => this.renderAll());
     PB.state.init(() => {
       // Nếu lần đầu mở chưa có dữ liệu, tự nạp mẫu để dễ trải nghiệm ngay
@@ -155,6 +275,7 @@ PB.app = {
     document.querySelectorAll(".tab-panel").forEach((p) => {
       p.classList.toggle("active", p.id === `tab-${tab}`);
     });
+    this.updateNavSlider(tab);
     this.renderAll();
   },
 

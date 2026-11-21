@@ -832,3 +832,86 @@ table.data-table tr.qualify-b td:first-child { border-left: 3px solid var(--gold
   margin-bottom: 12px;
   color: var(--text-2);
 }
+/* =========================================================
+   REFEREE PRO v8: PLAYER GLOWING DOTS + LANDSCAPE / PC AUTO-FIT
+   ========================================================= */
+.ref-sub-select {
+  width: auto !important;
+  max-width: 210px;
+  font-weight: 800;
+  color: var(--primary);
+  border: 1.5px solid #fdba74 !important;
+  background: var(--primary-soft) !important;
+  border-radius: 10px !important;
+  padding: 6px 10px !important;
+  font-size: 0.85rem !important;
+}
+
+/* Glowing Player Dots on 2D SVG Court */
+@keyframes dotGlowServe {
+  0%, 100% { r: 11; opacity: 1; filter: drop-shadow(0 0 8px #fde047); }
+  50% { r: 14; opacity: 0.85; filter: drop-shadow(0 0 16px #f97316); }
+}
+@keyframes dotGlowReceive {
+  0%, 100% { r: 11; opacity: 1; filter: drop-shadow(0 0 8px #6ee7b7); }
+  50% { r: 14; opacity: 0.85; filter: drop-shadow(0 0 16px #10b981); }
+}
+@keyframes ringPulse {
+  0% { r: 12; opacity: 0.85; stroke-width: 3; }
+  100% { r: 24; opacity: 0; stroke-width: 1; }
+}
+.player-dot-serve { animation: dotGlowServe 1.05s infinite ease-in-out; }
+.player-dot-receive { animation: dotGlowReceive 1.05s infinite ease-in-out; }
+.player-ring-serve { fill: none; stroke: #fde047; animation: ringPulse 1.15s infinite ease-out; }
+.player-ring-receive { fill: none; stroke: #6ee7b7; animation: ringPulse 1.15s infinite ease-out; }
+
+/* Bố cục thân bàn Trọng tài co giãn thông minh */
+.ref-body-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Máy tính (>= 960px): Sân 2D bên trái, Bảng chấm điểm bên phải gọn trong 1 màn hình */
+@media (min-width: 960px) {
+  .ref-body-layout {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .ref-body-layout .pb-court-2d-wrap {
+    margin-bottom: 0;
+  }
+}
+
+/* Điện thoại xoay NGANG (Landscape): Tự co gọn 2 cột, ẩn bớt khoảng trắng để bấm không cần cuộn */
+@media (orientation: landscape) and (max-height: 540px) {
+  body { padding-bottom: 72px !important; }
+  .topbar { position: static; }
+  .topbar-inner { padding: 6px 12px; }
+  .brand-logo { width: 32px; height: 32px; }
+  .container { padding: 8px 12px; }
+  .ref-console { padding: 10px; }
+  .ref-topbar { margin-bottom: 8px; padding-bottom: 6px; }
+  .callout-banner { padding: 6px 10px; margin-bottom: 8px; }
+  .callout-score { font-size: 1.5rem; }
+  .ref-body-layout {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 10px;
+    align-items: start;
+  }
+  .pb-court-2d-wrap { padding: 8px; margin-bottom: 0; }
+  .ref-side { padding: 8px 6px; }
+  .ref-big-score { font-size: 2.2rem; margin: 2px 0; }
+  .ref-action-btn { min-height: 44px; padding: 10px 6px; font-size: 0.9rem !important; }
+  .ref-tools-grid { margin-top: 8px; gap: 6px; }
+}
+
+/* Điện thoại DỌC: Đảm bảo khoảng trống đáy đủ lớn không bị thanh tab bar che nút cuối */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important;
+  }
+}

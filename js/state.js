@@ -134,7 +134,8 @@ PB.state = {
       id: "T" + (i + 1),
       name,
       group: i < 4 ? "A" : "B",
-      seed: i < 2 ? i + 1 : 0
+      seed: i < 2 ? i + 1 : 0,
+      rating: (2.8 + (i % 4) * 0.2).toFixed(1)
     }));
     this.data = d;
     PB.bracket.generateGroupMatches();

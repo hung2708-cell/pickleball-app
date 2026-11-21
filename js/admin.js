@@ -43,7 +43,7 @@ PB.admin = {
         </div>
         <div class="form-group">
           <label>Dán danh sách từ Zalo / Excel (mỗi dòng 1 cặp VĐV):</label>
-          <textarea id="bulkTeamsInput" rows="4" placeholder="Ví dụ:&#10;Hùng / Dương&#10;Nam / Khánh&#10;Dũng / Hạnh"></textarea>
+          <textarea id="bulkTeamsInput" rows="4" placeholder="Mỗi dòng 1 đội (có thể kèm trình độ sau dấu -):&#10;Hùng / Dương - 3.2&#10;Nam / Khánh - 3.0&#10;Dũng / Hạnh - 2.8"></textarea>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-primary" onclick="PB.admin.addBulkTeams()">+ Thêm vào danh sách</button>
@@ -233,10 +233,14 @@ PB.admin = {
     const raw = document.getElementById("bulkTeamsInput").value;
     const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     if (!lines.length) return PB.app.toast("Vui lòng nhập ít nhất 1 tên đội.");
-    lines.forEach((name) => {
+    lines.forEach((line) => {
+      const parts = line.split("-");
+      const name = parts[0].trim();
+      const rating = parts[1] ? parts[1].trim() : "";
       PB.state.data.teams.push({
         id: "T" + Date.now() + "_" + Math.floor(Math.random() * 1000),
         name,
+        rating,
         group: "A",
         seed: 0
       });

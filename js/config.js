@@ -1,5 +1,5 @@
 /* =========================================================
-   js/config.js - Đã tích hợp Firebase dự án caycoi
+   js/config.js - Tích hợp Firebase dự án caycoi
    ========================================================= */
 window.PB = window.PB || {};
 
@@ -13,15 +13,9 @@ PB.config = {
     messagingSenderId: "60507496138",
     appId: "1:60507496138:web:dc4a76e5805ca3fc115e33"
   },
-
-  // Đường dẫn gốc lưu dữ liệu giải trên Firebase Realtime Database
   dbPath: "pickleball_tournament_v1",
-
-  // Khóa lưu trữ LocalStorage
   localStorageKey: "pb_tournament_state_v1",
   roleStorageKey: "pb_user_role_v1",
-
-  // Mật khẩu mặc định ban đầu (Quản lý có thể đổi ngay trên web)
   defaultPasswords: {
     admin: "admin123",
     referee: "tt123"

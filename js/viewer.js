@@ -12,7 +12,32 @@ PB.viewer = {
   standingView: "groups",
   activeTvMatchId: null,
 
+
+  _teamBadgeHtml(teamId) {
+    if (!teamId) return "";
+    const t = PB.state.data.teams.find((x) => x.id === teamId);
+    if (!t || !t.rating) return "";
+    return `<span class="badge-rating">${PB.app.escape(t.rating)}</span>`;
+  },
+
+  renderStatsStrip() {
+    const el = document.getElementById("tournamentStatsStrip");
+    if (!el || !PB.state.data) return;
+    const teams = PB.state.data.teams.length;
+    const matches = PB.state.data.matches;
+    const live = matches.filter((m) => m.status === "live").length;
+    const done = matches.filter((m) => m.status === "finished").length;
+    const pct = matches.length ? Math.round((done / matches.length) * 100) : 0;
+    el.innerHTML = `
+      <div class="stat-card"><div class="stat-label">Đội tham dự</div><div class="stat-value">${teams}</div></div>
+      <div class="stat-card"><div class="stat-label">Tổng số trận</div><div class="stat-value">${matches.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Đang thi đấu</div><div class="stat-value accent-live">${live}</div></div>
+      <div class="stat-card"><div class="stat-label">Tiến độ giải</div><div class="stat-value accent-ok">${done}/${matches.length} (${pct}%)</div></div>
+    `;
+  },
+
   renderAll() {
+    this.renderStatsStrip();
     this.renderLive();
     this.renderStandings();
     if (this.activeTvMatchId) this.renderTvOverlay(this.activeTvMatchId);
@@ -59,7 +84,7 @@ PB.viewer = {
           <div class="court-card">
             <div class="court-card-head">
               <div>
-                <strong>Sân ${m.court || "?"}</strong> • <span class="muted">${PB.app.escape(m.roundName)}</span>
+                <span class="court-pill">Sân ${m.court || "?"}</span> <span class="muted" style="margin-left:6px;">${PB.app.escape(m.roundName)}</span>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
                 <span class="badge badge-live">● LIVE</span>
@@ -68,15 +93,15 @@ PB.viewer = {
             </div>
             <div class="score-row ${m.server === "A" ? "serving" : ""}">
               <div class="team-name-line">
-                ${m.server === "A" ? '<span class="serve-dot">●</span>' : ""}
-                <span>${PB.app.escape(nameA)}</span>
+                ${m.server === "A" ? '<span class="serve-dot"></span>' : ""}
+                <span>${PB.app.escape(nameA)}</span> ${this._teamBadgeHtml(m.teamA)}
               </div>
               <div class="score-num">${m.scoreA}</div>
             </div>
             <div class="score-row ${m.server === "B" ? "serving" : ""}">
               <div class="team-name-line">
-                ${m.server === "B" ? '<span class="serve-dot">●</span>' : ""}
-                <span>${PB.app.escape(nameB)}</span>
+                ${m.server === "B" ? '<span class="serve-dot"></span>' : ""}
+                <span>${PB.app.escape(nameB)}</span> ${this._teamBadgeHtml(m.teamB)}
               </div>
               <div class="score-num">${m.scoreB}</div>
             </div>

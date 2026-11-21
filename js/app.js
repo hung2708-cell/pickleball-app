@@ -26,11 +26,11 @@ PB.app = {
     document.getElementById("headerTournamentName").textContent = d.tournamentName;
     const syncEl = document.getElementById("syncBadge");
     if (PB.state.isCloud) {
-      syncEl.textContent = "☁️ Firebase Realtime";
-      syncEl.className = "badge badge-cloud";
+      syncEl.textContent = "● Realtime Cloud";
+      syncEl.className = "chip chip-cloud";
     } else {
-      syncEl.textContent = "💻 Chế độ Local (Test)";
-      syncEl.className = "badge badge-local";
+      syncEl.textContent = "Chế độ Local";
+      syncEl.className = "chip chip-local";
     }
 
     const s = d.settings;
@@ -42,12 +42,12 @@ PB.app = {
     const roleBadge = document.getElementById("roleBadge");
     const btnAuth = document.getElementById("btnAuth");
     if (role === "admin") {
-      roleBadge.textContent = "⚙️ Quản lý";
+      roleBadge.textContent = "Quản lý";
       roleBadge.className = "role-pill role-admin";
       btnAuth.textContent = "Đăng xuất";
       btnAuth.onclick = () => this.logout();
     } else if (role === "referee") {
-      roleBadge.textContent = "⚖️ Trọng tài";
+      roleBadge.textContent = "Trọng tài";
       roleBadge.className = "role-pill role-referee";
       btnAuth.textContent = "Đăng xuất";
       btnAuth.onclick = () => this.logout();

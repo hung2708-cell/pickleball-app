@@ -19,13 +19,18 @@ PB.referee = {
   lineupDraft: null,   // { A: [[p1,p2],...], B: [[p1,p2],...], singlesA: "", singlesB: "" }
   timerInterval: null,
   timerSeconds: 0,
+  timerTotal: 60,
   timerLabel: "",
+
+  _setScoringLock(locked) {
+    document.body.classList.toggle("ref-scoring-mode", !!locked);
+  },
 
   render() {
     const allowed = PB.auth.isReferee();
     document.getElementById("refereeLockedView").classList.toggle("hidden", allowed);
     document.getElementById("refereeContent").classList.toggle("hidden", !allowed);
-    if (!allowed) return;
+    if (!allowed) { this._setScoringLock(false); return; }
 
     this._populateCourtFilter();
     if (this.activeMatchId) this.renderConsole();
@@ -44,6 +49,7 @@ PB.referee = {
   },
 
   renderList() {
+    this._setScoringLock(false);
     document.getElementById("refMatchListView").classList.remove("hidden");
     document.getElementById("refConsoleView").classList.add("hidden");
 
@@ -445,6 +451,7 @@ PB.referee = {
   // =========================================================
   _renderTeamConsole(tie, el) {
     if (!tie.lineupLocked) {
+      this._setScoringLock(false);
       this._renderTeamLineupForm(tie, el);
       return;
     }
@@ -457,6 +464,7 @@ PB.referee = {
       return;
     }
 
+    this._setScoringLock(false);
     // Màn hình tổng quan 4 trận đôi của cuộc đối đầu
     const nA = PB.state.getTeamName(tie.teamA);
     const nB = PB.state.getTeamName(tie.teamB);
@@ -742,6 +750,7 @@ PB.referee = {
   },
 
   _renderTeamSubMatchConsole(tie, subIdx, el) {
+    this._setScoringLock(true);
     const sm = tie.subMatches[subIdx];
     const isKO = tie.stage !== "group";
     const srvScore = sm.server === "A" ? sm.scoreA : sm.scoreB;
@@ -767,7 +776,7 @@ PB.referee = {
               ? `<button class="ref-action-btn ${isA ? "btn-point-a" : "btn-point-b"}" onclick="PB.referee.teamSubPoint('${sideKey}')">+1 ĐIỂM</button>`
               : `<button class="ref-action-btn btn-sideout" onclick="PB.referee.teamSubSideOut()">ĐỔI GIAO / LỖI</button>`
           )}
-          <div style="display:flex;gap:6px;margin-top:8px;">
+          <div class="ref-side-subbtns">
             <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.teamSubTimeout('${sideKey}')" ${toLeft <= 0 || sm.status === "finished" ? "disabled" : ""}>Timeout (${toLeft})</button>
             <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.teamSubMedicalSub('${sideKey}')" ${sm.status === "finished" ? "disabled" : ""}>Thay Y tế</button>
           </div>
@@ -782,10 +791,10 @@ PB.referee = {
       <div class="ref-console">
         <div class="ref-topbar">
           <button class="btn btn-sm btn-secondary" onclick="PB.referee.backToTeamHub()">← 4 trận</button>
-          <select class="ref-sub-select" onchange="PB.referee.switchTeamSub(this.value)">
-            ${tie.subMatches.map((item, i) => `<option value="${i}" ${i === subIdx ? "selected" : ""}>${item.label}</option>`).join("")}
-            ${canDB ? `<option value="db">Trận Đơn (Hòa 2-2)</option>` : ""}
-          </select>
+          <button class="ref-sub-pill-btn" onclick="PB.referee.openSubPicker()">
+            <span>${PB.app.escape(sm.label)}</span>
+            <span style="font-size:0.7rem;opacity:0.8;">▾</span>
+          </button>
           <span class="muted">${isKO ? "15đ (max 18)" : "Chạm 15đ"}</span>
         </div>
 
@@ -796,15 +805,10 @@ PB.referee = {
 
         ${sm.switchedAlerted && (sm.scoreA === 8 || sm.scoreB === 8) ? `<div class="switch-alert">CHẠM ĐIỂM 8 — YÊU CẦU HAI ĐỘI ĐỔI SÂN!</div>` : ""}
 
-        ${this.timerSeconds > 0 ? `
-          <div class="timeout-banner">
-            <span>⏱ ${PB.app.escape(this.timerLabel)}: <strong>${this._fmtSec(this.timerSeconds)}</strong></span>
-            <button class="btn btn-sm btn-danger" onclick="PB.referee.stopTimer()">Dừng</button>
-          </div>
-        ` : ""}
+
 
         <div class="ref-body-layout">
-          <div>
+          <div class="ref-court-pane">
             ${this._renderCourtDiagram({
               leftSide, rightSide,
               leftName: (leftSide === "A" ? sm.playersA : sm.playersB).filter(Boolean).join(" / ") || PB.state.getTeamName(leftSide === "A" ? tie.teamA : tie.teamB),
@@ -816,7 +820,7 @@ PB.referee = {
               serverNum: sm.serverNum
             })}
           </div>
-          <div>
+          <div class="ref-controls-pane">
             <div class="ref-courts-split">
               ${renderSide(leftSide)}
               ${renderSide(rightSide)}
@@ -835,7 +839,44 @@ PB.referee = {
     `;
   },
 
+  openSubPicker() {
+    const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+    if (!tie || tie.matchType !== "team") return;
+    const isKO = tie.stage !== "group";
+    const all4Done = tie.subMatches.every((s) => s.status === "finished");
+    const canDB = isKO && all4Done && tie.scoreA === 2 && tie.scoreB === 2;
+
+    const listEl = document.getElementById("iosPickerList");
+    document.getElementById("iosPickerTitle").textContent = "Chọn nội dung thi đấu";
+    let html = tie.subMatches.map((item, i) => {
+      const active = this.activeSubIdx === i;
+      const st = item.status === "finished" ? `(${item.scoreA}-${item.scoreB})` : item.status === "live" ? "Đang đánh" : "";
+      return `
+        <button class="ios27-picker-item ${active ? "active" : ""}" onclick="PB.referee.switchTeamSub(${i})">
+          <div>
+            <div>${PB.app.escape(item.label)}</div>
+            ${st ? `<div class="muted" style="font-size:0.74rem;">${st}</div>` : ""}
+          </div>
+          <span class="ios27-picker-check">${active ? "✓" : ""}</span>
+        </button>
+      `;
+    }).join("");
+
+    if (canDB) {
+      const active = this.activeSubIdx === "db";
+      html += `
+        <button class="ios27-picker-item ${active ? "active" : ""}" onclick="PB.referee.switchTeamSub('db')">
+          <div><div>Trận Đơn (Hòa 2-2)</div><div class="muted" style="font-size:0.74rem;">Ăn điểm trực tiếp</div></div>
+          <span class="ios27-picker-check">${active ? "✓" : ""}</span>
+        </button>
+      `;
+    }
+    listEl.innerHTML = html;
+    document.getElementById("iosPickerModal").classList.remove("hidden");
+  },
+
   switchTeamSub(val) {
+    PB.app.closeModal("iosPickerModal");
     this.stopTimer();
     this.activeSubIdx = (val === "db") ? "db" : Number(val);
     this.renderConsole();
@@ -946,6 +987,7 @@ PB.referee = {
 
   // Bàn chấm Đơn Dreambreaker (Hòa 2-2 vòng loại trực tiếp)
   _renderDreambreakerConsole(tie, el) {
+    this._setScoringLock(true);
     const db = tie.dreambreaker;
     const total = db.scoreA + db.scoreB;
     const rotIdx = Math.floor(total / 4);
@@ -1027,6 +1069,7 @@ PB.referee = {
   // GIAO DIỆN TRỌNG TÀI: THỂ THỨC ĐÔI (DOUBLES)
   // =========================================================
   _renderDoublesConsole(m, el) {
+    this._setScoringLock(true);
     const settings = PB.state.data.settings;
     const callout = PB.rules.getCallout(m, settings);
     const leftSide = m.swapped ? "B" : "A";
@@ -1054,7 +1097,7 @@ PB.referee = {
           ${canPoint
             ? `<button class="ref-action-btn ${isA ? "btn-point-a" : "btn-point-b"}" onclick="PB.referee.point('${sideKey}')">+1 ĐIỂM</button>`
             : `<button class="ref-action-btn btn-sideout" onclick="PB.referee.sideOut()">ĐỔI GIAO / LỖI</button>`}
-          <div style="display:flex;gap:6px;margin-top:8px;">
+          <div class="ref-side-subbtns">
             <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.timeout('${sideKey}')" ${toLeft <= 0 ? "disabled" : ""}>TO (${toLeft})</button>
             <button class="btn btn-sm btn-secondary" style="flex:1;" onclick="PB.referee.techFoul('${sideKey}')">Lỗi KT</button>
           </div>
@@ -1078,14 +1121,9 @@ PB.referee = {
           <div class="callout-score">${callout}</div>
         </div>
         ${showSwitchBanner ? `<div class="switch-alert">CHẠM ĐIỂM ${switchPt} — YÊU CẦU HAI ĐỘI ĐỔI SÂN!</div>` : ""}
-        ${this.timerSeconds > 0 ? `
-          <div class="timeout-banner">
-            <span>⏱ ${PB.app.escape(this.timerLabel)}: <strong>${this._fmtSec(this.timerSeconds)}</strong></span>
-            <button class="btn btn-sm btn-danger" onclick="PB.referee.stopTimer()">Dừng</button>
-          </div>
-        ` : ""}
+
         <div class="ref-body-layout">
-          <div>
+          <div class="ref-court-pane">
             ${this._renderCourtDiagram({
               leftSide, rightSide,
               leftName: PB.state.getTeamName(leftSide === "A" ? m.teamA : m.teamB),
@@ -1096,7 +1134,7 @@ PB.referee = {
               serverNum: settings.scoringMode === "sideout" ? m.serverNum : 0
             })}
           </div>
-          <div>
+          <div class="ref-controls-pane">
             <div class="ref-courts-split">
               ${renderSide(leftSide)}
               ${renderSide(rightSide)}
@@ -1141,15 +1179,53 @@ PB.referee = {
     if (m && PB.rules.useTimeout(m, side)) { PB.state.save(); this.startTimer(60, `Hội ý Đội ${side}`); }
   },
   startMedicalTimer() { this.startTimer(15 * 60, "Medical Timeout (15p)"); },
+  _updateTimerModalDom() {
+    const clockEl = document.getElementById("iosTimerClock");
+    const progEl = document.getElementById("iosTimerProgress");
+    if (clockEl) clockEl.textContent = this._fmtSec(this.timerSeconds);
+    if (progEl && this.timerTotal > 0) {
+      const circ = 376.99;
+      const ratio = Math.max(0, Math.min(1, this.timerSeconds / this.timerTotal));
+      progEl.setAttribute("stroke-dashoffset", String(circ * (1 - ratio)));
+    }
+  },
   startTimer(sec, label) {
-    this.stopTimer(); this.timerSeconds = sec; this.timerLabel = label; this.renderConsole();
+    this.stopTimer(true);
+    this.timerSeconds = sec;
+    this.timerTotal = sec;
+    this.timerLabel = label;
+    const isMed = sec > 120;
+    const badgeEl = document.getElementById("iosTimerBadge");
+    const titleEl = document.getElementById("iosTimerTitle");
+    const subEl = document.getElementById("iosTimerSub");
+    if (badgeEl) {
+      badgeEl.textContent = isMed ? "MEDICAL TIMEOUT (15 PHÚT)" : "TIMEOUT (60 GIÂY)";
+      badgeEl.style.background = isMed ? "var(--danger-soft)" : "var(--primary-soft)";
+      badgeEl.style.color = isMed ? "var(--danger)" : "var(--primary)";
+    }
+    if (titleEl) titleEl.textContent = label;
+    if (subEl) subEl.textContent = isMed ? "Thời gian chăm sóc y tế cho VĐV" : "Hết giờ hệ thống sẽ tự báo tiếp tục thi đấu";
+    this._updateTimerModalDom();
+    document.getElementById("iosTimerModal")?.classList.remove("hidden");
+
     this.timerInterval = setInterval(() => {
       this.timerSeconds -= 1;
-      if (this.timerSeconds <= 0) { this.stopTimer(); PB.app.toast(`Hết giờ ${label}!`); }
-      else this.renderConsole();
+      if (this.timerSeconds <= 0) {
+        this.stopTimer(true);
+        PB.ui.alert(`Đã hết thời gian ${label}. Mời hai đội trở lại sân thi đấu.`, "Hết giờ nghỉ");
+      } else {
+        this._updateTimerModalDom();
+      }
     }, 1000);
   },
-  stopTimer() { if (this.timerInterval) clearInterval(this.timerInterval); this.timerInterval = null; this.timerSeconds = 0; this.timerLabel = ""; if (this.activeMatchId) this.renderConsole(); },
+  stopTimer(silent = false) {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    this.timerInterval = null;
+    this.timerSeconds = 0;
+    this.timerLabel = "";
+    document.getElementById("iosTimerModal")?.classList.add("hidden");
+    if (!silent && this.activeMatchId) PB.app.toast("Đã kết thúc thời gian nghỉ");
+  },
   async techFoul(side) {
     const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     if (!m || !(await PB.ui.confirm("Phạt Lỗi Kỹ Thuật (+1 điểm trực tiếp cho đối thủ)?", "Lỗi Kỹ Thuật", true))) return;

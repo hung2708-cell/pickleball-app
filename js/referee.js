@@ -156,18 +156,18 @@ PB.referee = {
     if (serverOnLeft) {
       if (isServerEven) {
         lBotState = "serve"; rTopState = "receive";
-        arrow = { x1: 95, y1: 162, x2: 385, y2: 62 };
+        arrow = { x1: 178, y1: 142, x2: 302, y2: 88 };
       } else {
         lTopState = "serve"; rBotState = "receive";
-        arrow = { x1: 95, y1: 62, x2: 385, y2: 162 };
+        arrow = { x1: 178, y1: 88, x2: 302, y2: 142 };
       }
     } else {
       if (isServerEven) {
         rTopState = "serve"; lBotState = "receive";
-        arrow = { x1: 385, y1: 62, x2: 95, y2: 162 };
+        arrow = { x1: 302, y1: 88, x2: 178, y2: 142 };
       } else {
         rBotState = "serve"; lTopState = "receive";
-        arrow = { x1: 385, y1: 162, x2: 95, y2: 62 };
+        arrow = { x1: 302, y1: 142, x2: 178, y2: 88 };
       }
     }
 
@@ -894,24 +894,93 @@ PB.referee = {
     this.startTimer(60, `Timeout — Đội ${side}`);
   },
 
-  async teamSubMedicalSub(side) {
+  teamSubMedicalSub(side) {
     const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     const sm = tie?.subMatches?.[this.activeSubIdx];
     if (!sm) return;
+    const teamObj = PB.state.getTeam(side === "A" ? tie.teamA : tie.teamB);
+    const teamName = teamObj ? teamObj.name : `Đội ${side}`;
+    const roster = (teamObj && teamObj.roster) ? teamObj.roster : [];
     const key = side === "A" ? "playersA" : "playersB";
-    const curPair = (sm[key] || []).filter(Boolean).join(" / ");
-    const inp = await PB.ui.prompt(
-      `Thay VĐV chấn thương (Y tế) cho ${sm.label} — Đội ${side}.\nNhập tên 2 VĐV mới cách nhau dấu "/" (VD: Hùng / Nam):`,
-      curPair,
-      "Thay VĐV (Y tế)"
-    );
-    if (!inp) return;
-    const parts = inp.split("/").map((s) => s.trim()).filter(Boolean);
-    if (parts.length < 2) return PB.ui.alert("Vui lòng nhập đủ tên 2 VĐV cách nhau dấu /.");
-    sm[key] = [parts[0], parts[1]];
-    sm.logs.unshift(`[${PB.rules.nowTime()}] Thay VĐV (Y tế) Đội ${side}: ${parts[0]} / ${parts[1]}`);
+    const curPair = [sm[key]?.[0] || "", sm[key]?.[1] || ""];
+
+    this._medSubDraft = { side, p0: curPair[0], p1: curPair[1], roster, reqGender: sm.reqGender || ["", ""], teamName, label: sm.label };
+    this._renderMedSubModal();
+    document.getElementById("infoModal").classList.remove("hidden");
+  },
+
+  _renderMedSubModal() {
+    const st = this._medSubDraft;
+    if (!st) return;
+    document.getElementById("infoModalTitle").textContent = `Thay VĐV (Y tế) — ${st.teamName}`;
+    const body = document.getElementById("infoModalBody");
+
+    const buildSlot = (slotIdx) => {
+      const reqG = st.reqGender[slotIdx];
+      const gLabel = reqG === "M" ? "Nam" : reqG === "F" ? "Nữ" : "VĐV";
+      const curVal = slotIdx === 0 ? st.p0 : st.p1;
+      const otherVal = slotIdx === 0 ? st.p1 : st.p0;
+      const filtered = st.roster.filter((p) => {
+        if (reqG && p.gender !== reqG) return false;
+        if (p.name === curVal) return true;
+        if (p.name === otherVal) return false;
+        return true;
+      });
+
+      if (!filtered.length) {
+        return `
+          <div class="form-group">
+            <label>Tay ${slotIdx + 1} (${gLabel})</label>
+            <input type="text" class="input" value="${PB.app.escape(curVal)}" oninput="PB.referee.onMedSubPick(${slotIdx}, this.value)" placeholder="Nhập tên VĐV..." />
+          </div>
+        `;
+      }
+
+      return `
+        <div class="form-group">
+          <label>Tay ${slotIdx + 1} (${gLabel})</label>
+          <div class="ios27-picker-list" style="padding:0;max-height:160px;">
+            ${filtered.map((p) => {
+              const active = p.name === curVal;
+              return `
+                <button type="button" class="ios27-picker-item ${active ? "active" : ""}" style="padding:10px 12px;" onclick="PB.referee.onMedSubPick(${slotIdx}, '${PB.app.escape(p.name)}')">
+                  <span>${PB.app.escape(p.name)} (${p.gender === "M" ? "Nam" : "Nữ"})</span>
+                  <span class="ios27-picker-check">${active ? "✓" : ""}</span>
+                </button>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `;
+    };
+
+    body.innerHTML = `
+      <p class="muted" style="margin:0 0 10px;">Chọn VĐV thay thế chấn thương cho <strong>${PB.app.escape(st.label)}</strong>:</p>
+      ${buildSlot(0)}
+      ${buildSlot(1)}
+      <button class="btn ios27-btn-primary mt-12" onclick="PB.referee.applyMedSub()">Xác nhận thay VĐV</button>
+    `;
+  },
+
+  onMedSubPick(slotIdx, name) {
+    if (!this._medSubDraft) return;
+    if (slotIdx === 0) this._medSubDraft.p0 = name;
+    else this._medSubDraft.p1 = name;
+    this._renderMedSubModal();
+  },
+
+  applyMedSub() {
+    const st = this._medSubDraft;
+    const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+    const sm = tie?.subMatches?.[this.activeSubIdx];
+    if (!st || !sm) return;
+    if (!st.p0 || !st.p1) return PB.ui.alert("Vui lòng chọn đủ 2 VĐV.");
+    const key = st.side === "A" ? "playersA" : "playersB";
+    sm[key] = [st.p0, st.p1];
+    sm.logs.unshift(`[${PB.rules.nowTime()}] Thay VĐV (Y tế) ${st.teamName}: ${st.p0} / ${st.p1}`);
     PB.state.save();
-    PB.app.toast(`Đã thay VĐV (Y tế) cho Đội ${side}`);
+    PB.app.closeModal("infoModal");
+    PB.app.toast(`Đã thay VĐV (Y tế) cho ${st.teamName}`);
   },
 
   teamSubPoint(side) {
@@ -1189,7 +1258,39 @@ PB.referee = {
       progEl.setAttribute("stroke-dashoffset", String(circ * (1 - ratio)));
     }
   },
+  _ensureTimerModal() {
+    if (document.getElementById("iosTimerModal")) return;
+    const div = document.createElement("div");
+    div.id = "iosTimerModal";
+    div.className = "modal modal-ios27 hidden";
+    div.style.zIndex = "260";
+    div.innerHTML = `
+      <div class="modal-backdrop"></div>
+      <div class="modal-card ios27-sheet ios27-alert-sheet">
+        <div class="ios27-grabber"></div>
+        <div class="ios27-auth-head" style="padding-bottom:4px;">
+          <div id="iosTimerBadge" class="toss-step-badge" style="margin-bottom:6px;">TIMEOUT</div>
+          <h3 id="iosTimerTitle" style="margin:0;">Hội ý</h3>
+        </div>
+        <div class="modal-body text-center" style="padding:10px 18px 14px;">
+          <div class="ios27-timer-ring-wrap">
+            <svg class="ios27-timer-svg" viewBox="0 0 140 140">
+              <circle cx="70" cy="70" r="60" class="ios27-timer-track" />
+              <circle id="iosTimerProgress" cx="70" cy="70" r="60" class="ios27-timer-bar" stroke-dasharray="376.99" stroke-dashoffset="0" />
+            </svg>
+            <div id="iosTimerClock" class="ios27-timer-clock">01:00</div>
+          </div>
+          <p id="iosTimerSub" class="muted" style="margin:6px 0 0;">Đang đếm ngược thời gian nghỉ...</p>
+        </div>
+        <div class="ios27-sheet-actions">
+          <button class="btn ios27-btn-primary" onclick="PB.referee.stopTimer()">Tiếp tục trận đấu</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(div);
+  },
   startTimer(sec, label) {
+    this._ensureTimerModal();
     this.stopTimer(true);
     this.timerSeconds = sec;
     this.timerTotal = sec;

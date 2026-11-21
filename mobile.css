@@ -322,3 +322,98 @@ table.data-table th:nth-child(2) { background: var(--surface-sub); z-index: 4; }
   font-size: 0.86rem !important;
   padding: 8px 10px !important;
 }
+/* =========================================================
+   v21: KHÓA GỌN 1 MÀN HÌNH CHO ĐĂNG KÝ ĐỘI HÌNH TRÊN ĐIỆN THOẠI
+   - Ẩn Topbar & Bottom Tab Bar (đã có nút Quay lại) -> tăng thêm 140px chiều cao
+   - Toàn bộ 4 trận + VĐV + Thứ tự Đơn + Nút Xác nhận nằm gọn trong 1 khung 100dvh
+   ========================================================= */
+body.ref-lineup-mode {
+  overflow: hidden !important;
+  height: 100dvh !important;
+  padding-bottom: 0 !important;
+  background: #e5e7eb !important;
+}
+body.ref-lineup-mode .topbar,
+body.ref-lineup-mode .main-nav {
+  display: none !important;
+}
+body.ref-lineup-mode .container {
+  height: 100dvh !important;
+  padding: calc(6px + env(safe-area-inset-top)) 8px calc(6px + env(safe-area-inset-bottom)) !important;
+  display: flex;
+  flex-direction: column;
+}
+body.ref-lineup-mode #tab-referee,
+body.ref-lineup-mode #refereeContent,
+body.ref-lineup-mode #refConsoleView {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+body.ref-lineup-mode .lineup-console {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8px 10px !important;
+  margin-bottom: 0 !important;
+  gap: clamp(4px, 0.7dvh, 7px);
+  overflow-y: auto;
+}
+body.ref-lineup-mode .lineup-console .ref-topbar {
+  margin-bottom: 0 !important;
+  padding-bottom: 5px !important;
+  flex-shrink: 0;
+}
+body.ref-lineup-mode .lineup-stepper {
+  margin-bottom: 0 !important;
+  flex-shrink: 0;
+}
+body.ref-lineup-mode .lineup-console > p.muted {
+  display: none !important;
+}
+body.ref-lineup-mode .roster-quota-bar {
+  margin-bottom: 0 !important;
+  padding: 5px !important;
+  gap: 4px !important;
+  flex-shrink: 0;
+}
+body.ref-lineup-mode .lineup-match-card {
+  padding: clamp(5px, 0.8dvh, 8px) 8px !important;
+  margin-bottom: 0 !important;
+  border-radius: 12px !important;
+}
+body.ref-lineup-mode .lineup-match-card > div:first-child {
+  margin-bottom: 4px !important;
+  font-size: 0.82rem;
+}
+body.ref-lineup-mode .lineup-match-card select.input-sm,
+body.ref-lineup-mode .lineup-match-card input.input-sm {
+  padding: clamp(5px, 0.8dvh, 7px) 8px !important;
+  font-size: 0.82rem !important;
+}
+body.ref-lineup-mode .lineup-console .card:not(.lineup-match-card) {
+  padding: clamp(5px, 0.8dvh, 8px) 8px !important;
+  margin-bottom: 0 !important;
+  border-radius: 12px !important;
+}
+body.ref-lineup-mode .lineup-console .form-group label {
+  font-size: 0.74rem !important;
+  margin-bottom: 3px !important;
+}
+body.ref-lineup-mode .lineup-console input.input {
+  padding: clamp(5px, 0.8dvh, 7px) 9px !important;
+  font-size: 0.82rem !important;
+}
+body.ref-lineup-mode .lineup-actions {
+  margin-top: 0 !important;
+  gap: 5px !important;
+  flex-shrink: 0;
+}
+body.ref-lineup-mode .lineup-actions .btn {
+  padding: clamp(8px, 1.2dvh, 11px) !important;
+  font-size: 0.88rem !important;
+  border-radius: 12px !important;
+}

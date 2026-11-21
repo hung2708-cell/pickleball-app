@@ -346,6 +346,40 @@ PB.viewer = {
               <span class="muted">Tự động cập nhật & xếp sân khi đủ đội</span>
             </div>
             <div class="bracket-tree">
+              ${gNames.length ? `
+                <div class="bt-col bt-col-groups">
+                  <div class="bt-col-title">Vòng bảng</div>
+                  <div class="bt-matches">
+                    ${gNames.map((g) => {
+                      const rows = standings[g] || [];
+                      const gMatches = PB.state.data.matches.filter((m) => m.stage === "group" && m.group === g);
+                      const gDone = gMatches.filter((m) => m.status === "finished").length;
+                      const gStatus = gMatches.length && gDone === gMatches.length ? "Xong" : `${gDone}/${gMatches.length}`;
+                      return `
+                        <div class="bt-node bt-group-node has-next">
+                          <div class="bt-node-meta">
+                            <span><strong>Bảng ${PB.app.escape(g)}</strong></span>
+                            <strong>${gStatus}</strong>
+                          </div>
+                          ${rows.map((r, rIdx) => {
+                            const rank = rIdx + 1;
+                            const isAdv = (st === "serieB") ? (rank === 3 || rank === 4) : (rank === 1 || rank === 2);
+                            const rankTag = rank === 1 ? `Nhất ${g}` : rank === 2 ? `Nhì ${g}` : rank === 3 ? `Ba ${g}` : rank === 4 ? `Tư ${g}` : `#${rank}`;
+                            const ptsTxt = PB.state.data.settings.category === "team" ? `${r.tablePts}đ` : `${r.wins}T`;
+                            return `
+                              <div class="bt-slot ${isAdv ? "winner" : ""}">
+                                <span class="bt-seed-tag">${rankTag}</span>
+                                <span class="bt-slot-name">${PB.app.escape(r.name)}</span>
+                                <span class="bt-slot-score">${ptsTxt}</span>
+                              </div>
+                            `;
+                          }).join("")}
+                        </div>
+                      `;
+                    }).join("")}
+                  </div>
+                </div>
+              ` : ""}
               ${orders.map((ord, colIdx) => {
                 const colMatches = list.filter((m) => (m.roundOrder || 3) === ord);
                 const hasNextCol = colIdx < orders.length - 1;

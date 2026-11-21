@@ -1060,7 +1060,7 @@ PB.referee = {
     PB.rules.forfeitEntireTeam(tie, w);
     PB.state.save();
     PB.app.toast("Đã chốt bỏ cuộc cả đội (4-0)");
-    this.exitMatch();
+    this._advanceNextMatchOnCourt(tie.court);
   },
 
   // Bàn chấm Đơn Dreambreaker (Hòa 2-2 vòng loại trực tiếp)
@@ -1352,7 +1352,7 @@ PB.referee = {
     if (!c) return;
     const w = c.trim().toUpperCase();
     if (w !== "A" && w !== "B") return;
-    PB.rules.finishByDefault(m, w, "Walkover"); PB.state.save(); this.exitMatch();
+    PB.rules.finishByDefault(m, w, "Walkover"); PB.state.save(); this._advanceNextMatchOnCourt(m.court);
   },
   async finishManual() {
     const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);

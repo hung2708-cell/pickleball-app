@@ -107,6 +107,7 @@ PB.admin = {
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="PB.admin.generateGroupSchedule()">Tạo lịch vòng bảng</button>
+          <button class="btn btn-warning" onclick="PB.admin.autoAssignNow()">Tự động xếp sân trống</button>
           <button class="btn btn-success" onclick="PB.admin.generateKnockout()">Chốt vòng bảng → Đẩy nhánh</button>
           <button class="btn btn-secondary" onclick="PB.admin.exportCsv()">Xuất kết quả Excel (CSV)</button>
         </div>
@@ -317,17 +318,24 @@ PB.admin = {
     PB.app.toast(`Đã tạo ${res.count} trận vòng loại trực tiếp!`);
   },
 
+  autoAssignNow() {
+    PB.bracket.syncGroupWinnersToBracket(false);
+    PB.bracket.autoAssignCourts();
+    PB.state.save();
+    PB.app.toast("Đã tự động xếp các trận đủ đội vào sân trống (không trùng VĐV)!");
+  },
+
   async assignCourt(matchId, courtNum) {
     const m = PB.state.data.matches.find((x) => x.id === matchId);
     if (!m) return;
     const cNum = Number(courtNum);
     if (cNum > 0) {
-      const conflict = PB.state.findLiveConflict(matchId);
+      const conflict = PB.state.findCourtConflict(matchId, cNum);
       if (conflict) {
-        await PB.ui.alert(
-          `Không thể xếp vào Sân ${cNum} vì [${conflict.who}] hiện đang thi đấu trực tiếp tại Sân ${conflict.court}.`,
-          "Trùng lịch thi đấu VĐV"
-        );
+        const msg = conflict.type === "court"
+          ? `Sân ${cNum} hiện đang được xếp cho trận [${conflict.who}].`
+          : `Không thể xếp vào Sân ${cNum} vì VĐV/Đội [${conflict.who}] đang có lịch tại Sân ${conflict.court}. VĐV không thể đánh 2 sân cùng lúc.`;
+        await PB.ui.alert(msg, "Trùng sân / VĐV");
         this.renderScheduleSub();
         return;
       }

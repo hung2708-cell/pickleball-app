@@ -172,6 +172,39 @@ PB.state = {
     return null;
   },
 
+  // Kiểm tra xung đột khi xếp sân thủ công (trùng sân đang bận hoặc trùng VĐV ở sân khác)
+  findCourtConflict(targetMatchId, courtNum) {
+    const target = this.data.matches.find((m) => m.id === targetMatchId);
+    if (!target) return null;
+    const cNum = Number(courtNum);
+    const targetPlayers = this.getMatchPlayerNames(target);
+    const activeOthers = this.data.matches.filter((m) =>
+      m.id !== targetMatchId && (m.status === "live" || (m.status === "pending" && Number(m.court) > 0))
+    );
+
+    for (const other of activeOthers) {
+      if (cNum > 0 && Number(other.court) === cNum) {
+        return {
+          type: "court",
+          court: cNum,
+          who: `${this.getTeamName(other.teamA)} vs ${this.getTeamName(other.teamB)}`
+        };
+      }
+      const otherPlayers = this.getMatchPlayerNames(other);
+      for (const p of targetPlayers) {
+        if (otherPlayers.has(p)) {
+          const display = p.startsWith("TEAM:") ? this.getTeamName(p.slice(5)) : p.toUpperCase();
+          return {
+            type: "player",
+            court: other.court || "?",
+            who: display
+          };
+        }
+      }
+    }
+    return null;
+  },
+
   subscribe(fn) {
     this.listeners.push(fn);
   },
@@ -247,16 +280,19 @@ PB.state = {
       }));
       this.data = d;
       PB.bracket.generateGroupMatches();
-      if (this.data.matches.length >= 2) {
-        this.data.matches[0].court = 1;
-        this.data.matches[0].status = "live";
-        this.data.matches[0].scoreA = 5;
-        this.data.matches[0].scoreB = 4;
-        this.data.matches[1].court = 2;
-        this.data.matches[1].status = "live";
-        this.data.matches[1].scoreA = 7;
-        this.data.matches[1].scoreB = 6;
+      // Lấy 2 trận đầu tiên đã được xếp sân không trùng VĐV để mở Live mẫu
+      const assigned = this.data.matches.filter((m) => m.court > 0 && m.teamA && m.teamB);
+      if (assigned[0]) {
+        assigned[0].status = "live";
+        assigned[0].scoreA = 5;
+        assigned[0].scoreB = 4;
       }
+      if (assigned[1]) {
+        assigned[1].status = "live";
+        assigned[1].scoreA = 7;
+        assigned[1].scoreB = 6;
+      }
+      PB.bracket.autoAssignCourts();
       this.save();
     }
   }

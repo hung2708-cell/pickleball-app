@@ -670,7 +670,7 @@ PB.referee = {
         <div class="card" style="padding:12px;margin-bottom:12px;">
           <div class="form-group" style="margin-bottom:0;">
             <label>Thứ tự đánh Đơn của ${PB.app.escape(curName)} (nếu hòa 2-2 loại trực tiếp — Nam gặp Nam, Nữ gặp Nữ)</label>
-            <input type="text" class="input" placeholder="VD: Dương(Nữ), Hùng(Nam), Hạnh(Nữ), Nam(Nam)" value="${PB.app.escape(singlesVal)}" oninput="PB.referee.onSinglesInput('${side}', this.value)" />
+            <input type="text" class="input" placeholder="VD: Dương(Nữ), Hùng(Nam)..." value="${PB.app.escape(singlesVal)}" oninput="PB.referee.onSinglesInput('${side}', this.value)" />
           </div>
         </div>
 

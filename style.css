@@ -1624,3 +1624,11 @@ body.ref-scoring-mode .ref-tools-grid .btn {
 .court-card-actions .btn {
   min-width: 104px;
 }
+/* v28: Cột Vòng bảng trong Sơ đồ nhánh đấu */
+.bt-col-groups .bt-col-title {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.bt-group-node {
+  border-color: #bae6fd;
+}

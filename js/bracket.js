@@ -208,13 +208,20 @@ PB.bracket = {
           }
         }
       } else {
+        // Chuẩn luật Pickleball (USAP/IFP): Thắng -> Đối đầu -> Hiệu số điểm -> Tổng điểm ghi -> Bốc thăm
         arr.sort((a, b) => {
           if (b.wins !== a.wins) return b.wins - a.wins;
+          if (a.h2h[b.teamId]) return -a.h2h[b.teamId];
           if (b.diff !== a.diff) return b.diff - a.diff;
           if (b.ptsFor !== a.ptsFor) return b.ptsFor - a.ptsFor;
-          if (a.h2h[b.teamId]) return -a.h2h[b.teamId];
-          return a.name.localeCompare(b.name);
+          return 0;
         });
+        for (let i = 0; i < arr.length - 1; i++) {
+          const a = arr[i], b = arr[i + 1];
+          if (a.played > 0 && a.wins === b.wins && !a.h2h[b.teamId] && a.diff === b.diff && a.ptsFor === b.ptsFor) {
+            a.tieDrawNote = true; b.tieDrawNote = true;
+          }
+        }
       }
       result[gName] = arr;
     });

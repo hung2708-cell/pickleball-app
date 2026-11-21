@@ -185,7 +185,7 @@ PB.viewer = {
         <div class="card">
           <div class="section-header">
             <h3>Bảng ${PB.app.escape(g)}</h3>
-            <span class="muted">${PB.state.data.settings.category === "team" ? "Thắng 3đ • Hòa 2đ • Thua 1đ • Bỏ cuộc 0đ (Đối kháng → Hệ số → Bốc thăm)" : "Ưu tiên: Thắng → Hiệu số → Tổng điểm → Đối đầu"}</span>
+            <span class="muted">${PB.state.data.settings.category === "team" ? "Thắng 3đ • Hòa 2đ • Thua 1đ • Bỏ cuộc 0đ (Đối kháng → Hệ số → Bốc thăm)" : "Ưu tiên: Thắng → Đối đầu → Hiệu số → Tổng điểm → Bốc thăm"}</span>
           </div>
           <div class="table-wrap">
             <table class="data-table">
@@ -208,7 +208,7 @@ PB.viewer = {
                   </tr>` : `
                   <tr class="${idx < 2 ? "qualify-a" : "qualify-b"}">
                     <td><strong>${idx + 1}</strong></td>
-                    <td><strong>${PB.app.escape(row.name)}</strong></td>
+                    <td><strong>${PB.app.escape(row.name)}</strong> ${row.tieDrawNote ? '<span class="badge badge-serieA">Bốc thăm</span>' : ""}</td>
                     <td>${row.played}</td>
                     <td><strong>${row.wins}</strong></td>
                     <td>${row.losses}</td>

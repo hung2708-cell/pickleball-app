@@ -303,7 +303,14 @@ PB.app = {
     if (PB.auth.login(role, pass)) {
       this.closeModal("authModal");
       this.toast(role === "admin" ? "Đã đăng nhập Quản lý" : "Đã đăng nhập Trọng tài");
-      this.renderAll();
+      if (PB.viewer._pendingRefMatchId && PB.auth.isReferee()) {
+        const mid = PB.viewer._pendingRefMatchId;
+        PB.viewer._pendingRefMatchId = null;
+        this.switchTab("referee");
+        PB.referee.openMatch(mid);
+      } else {
+        this.renderAll();
+      }
     } else {
       const err = document.getElementById("authErrorMsg");
       err.textContent = "Sai mật khẩu! Vui lòng thử lại.";

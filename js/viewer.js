@@ -11,6 +11,22 @@ window.PB = window.PB || {};
 PB.viewer = {
   standingView: "groups",
   activeTvMatchId: null,
+  expandedLiveCards: {},
+
+  toggleLiveDetail(matchId) {
+    this.expandedLiveCards[matchId] = !this.expandedLiveCards[matchId];
+    this.renderLive();
+  },
+
+  openMatchAsReferee(matchId) {
+    if (PB.auth.isReferee()) {
+      PB.app.switchTab("referee");
+      PB.referee.openMatch(matchId);
+    } else {
+      this._pendingRefMatchId = matchId;
+      PB.app.openAuthModal("referee");
+    }
+  },
 
 
   _teamBadgeHtml(teamId) {
@@ -174,7 +190,13 @@ PB.viewer = {
               <span>${m.matchType === "team" ? "Đồng đội (4 trận)" : `Set: ${m.setsA} - ${m.setsB}`}</span>
             </div>
             ${setsHtml}
-            ${this._renderTeamSubMatchesLiveHtml(m)}
+            <div class="court-card-actions">
+              <button class="btn btn-sm btn-primary" onclick="PB.viewer.openMatchAsReferee('${m.id}')">Trọng tài</button>
+              ${m.matchType === "team"
+                ? `<button class="btn btn-sm btn-secondary" onclick="PB.viewer.toggleLiveDetail('${m.id}')">${this.expandedLiveCards[m.id] ? "Ẩn chi tiết ▴" : "Chi tiết ▾"}</button>`
+                : `<button class="btn btn-sm btn-secondary" onclick="PB.viewer.openMatchLog('${m.id}')">Chi tiết</button>`}
+            </div>
+            ${m.matchType === "team" && this.expandedLiveCards[m.id] ? this._renderTeamSubMatchesLiveHtml(m) : ""}
           </div>
         `;
       }).join("");

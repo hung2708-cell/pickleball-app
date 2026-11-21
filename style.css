@@ -1519,3 +1519,95 @@ body.ref-scoring-mode .ref-tools-grid .btn {
 .ios27-select-btn .sel-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; }
 .ios27-select-btn .sel-txt.is-placeholder { color: var(--muted); font-weight: 500; }
 .ios27-select-btn .sel-chev { font-size: 0.72rem; color: var(--muted); }
+/* =========================================================
+   v24: TEAM SUB-MATCHES LIVE DISPLAY (KHÁN GIẢ THEO DÕI TRỰC TIẾP)
+   ========================================================= */
+.team-sub-list {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.team-sub-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--surface-sub);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+.team-sub-row.is-live {
+  background: var(--primary-soft);
+  border-color: #fdba74;
+}
+.team-sub-row.is-done {
+  background: var(--emerald-soft);
+  border-color: #a7f3d0;
+}
+.team-sub-info {
+  min-width: 0;
+  flex: 1;
+}
+.team-sub-title {
+  font-weight: 800;
+  font-size: 0.74rem;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.team-sub-row.is-done .team-sub-title { color: var(--emerald); }
+.team-sub-players {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.team-sub-score {
+  background: #111827;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 3px 9px;
+  border-radius: 7px;
+  min-width: 52px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.team-sub-row.is-live .team-sub-score {
+  background: var(--danger);
+}
+.team-sub-mini-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+.team-sub-mini-chip {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.team-sub-mini-chip.is-live {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: #fecaca;
+}
+.team-sub-mini-chip.is-done {
+  background: var(--emerald-soft);
+  color: var(--emerald);
+  border-color: #a7f3d0;
+}

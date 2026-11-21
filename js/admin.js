@@ -35,19 +35,51 @@ PB.admin = {
 
   renderTeamsSub() {
     const teams = PB.state.data.teams;
+    const isTeamMode = PB.state.data.settings.category === "team";
     const el = document.getElementById("admin-sub-teams");
     el.innerHTML = `
       <div class="card">
         <div class="section-header">
-          <h3>Nhập nhanh danh sách VĐV / Cặp đấu</h3>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-sm btn-secondary" onclick="PB.admin.loadSample('doubles')">Mẫu Đôi (8 cặp)</button><button class="btn btn-sm btn-warning" onclick="PB.admin.loadSample('team')">Mẫu Đồng đội (6 đội)</button></div>
+          <h3>Thêm VĐV / Cặp đấu mới</h3>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-secondary" onclick="PB.admin.loadSample('doubles')">Mẫu Đôi (8 cặp)</button>
+            <button class="btn btn-sm btn-warning" onclick="PB.admin.loadSample('team')">Mẫu Đồng đội (6 đội)</button>
+          </div>
         </div>
+
+        <div class="form-grid" style="margin-bottom:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label>${isTeamMode ? "Tên Đội / CLB *" : "Tên VĐV / Cặp đấu *"}</label>
+            <input type="text" id="addTeamName" class="input" placeholder="${isTeamMode ? "VD: CLB Bính Dần A" : "VD: Hùng / Dương"}" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>CLB</label>
+            <input type="text" id="addTeamClub" class="input" placeholder="VD: CLB Bính Dần 1986" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Giới tính</label>
+            <select id="addTeamGender" class="input">
+              <option value="Nam Nữ">Nam Nữ</option>
+              <option value="Nam">Nam</option>
+              <option value="Nữ">Nữ</option>
+              <option value="Đồng đội">Đồng đội (Nam & Nữ)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Trình (Rating)</label>
+            <input type="text" id="addTeamRating" class="input" placeholder="VD: 3.2" />
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="PB.admin.addSingleTeam()">+ Thêm vào danh sách</button>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;" />
+
         <div class="form-group">
-          <label>Dán danh sách từ Zalo / Excel (mỗi dòng 1 cặp VĐV):</label>
-          <textarea id="bulkTeamsInput" rows="4" placeholder="Mỗi dòng 1 đội (có thể kèm trình độ sau dấu -):&#10;Hùng / Dương - 3.2&#10;Nam / Khánh - 3.0&#10;Dũng / Hạnh - 2.8"></textarea>
+          <label>Hoặc dán nhanh danh sách từ Zalo / Excel (Định dạng: <strong>Tên - CLB - Giới tính - Trình</strong>):</label>
+          <textarea id="bulkTeamsInput" rows="3" placeholder="Mỗi dòng 1 đội/cặp:&#10;Hùng / Dương - CLB Bính Dần - Nam Nữ - 3.2&#10;Nam / Khánh - CLB Độc Lập - Nam - 3.0&#10;Lý / Thư - CLB Thục Phán - Nữ - 2.8"></textarea>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <button class="btn btn-primary" onclick="PB.admin.addBulkTeams()">+ Thêm vào danh sách</button>
+          <button class="btn btn-secondary" onclick="PB.admin.addBulkTeams()">+ Dán thêm hàng loạt</button>
           <select id="autoGroupCount" class="input-sm">
             <option value="2">Chia đều 2 bảng (A, B)</option>
             <option value="4">Chia đều 4 bảng (A, B, C, D)</option>
@@ -64,20 +96,38 @@ PB.admin = {
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>#</th><th>Tên đội / Cặp VĐV</th><th>Bảng</th><th>Thao tác</th></tr></thead>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Tên đội / Cặp VĐV</th>
+                <th>CLB</th>
+                <th>Giới tính</th>
+                <th>Trình</th>
+                <th>Bảng</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
             <tbody>
               ${teams.length ? teams.map((t, i) => `
                 <tr>
                   <td>${i + 1}</td>
                   <td><strong>${PB.app.escape(t.name)}</strong></td>
+                  <td>${PB.app.escape(t.club || "-")}</td>
+                  <td>${PB.app.escape(t.gender || (isTeamMode ? "Đồng đội" : "-"))}</td>
+                  <td>${t.rating ? `<span class="badge-rating">${PB.app.escape(t.rating)}</span>` : "-"}</td>
                   <td>
                     <select class="input-sm" onchange="PB.admin.changeTeamGroup('${t.id}', this.value)">
                       ${["A", "B", "C", "D"].map((g) => `<option value="${g}" ${t.group === g ? "selected" : ""}>Bảng ${g}</option>`).join("")}
                     </select>
                   </td>
-                  <td><div style="display:flex;gap:6px;">${PB.state.data.settings.category === "team" ? `<button class="btn btn-sm btn-secondary" onclick="PB.admin.editRosterPrompt('${t.id}')">VĐV (${(t.roster||[]).length})</button>` : ""}<button class="btn btn-sm btn-danger" onclick="PB.admin.deleteTeam('${t.id}')">Xóa</button></div></td>
+                  <td>
+                    <div style="display:flex;gap:6px;">
+                      ${isTeamMode ? `<button class="btn btn-sm btn-secondary" onclick="PB.admin.editRosterPrompt('${t.id}')">VĐV (${(t.roster||[]).length})</button>` : ""}
+                      <button class="btn btn-sm btn-danger" onclick="PB.admin.deleteTeam('${t.id}')">Xóa</button>
+                    </div>
+                  </td>
                 </tr>
-              `).join("") : `<tr><td colspan="4" class="muted text-center">Chưa có đội nào.</td></tr>`}
+              `).join("") : `<tr><td colspan="7" class="muted text-center">Chưa có đội nào.</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -232,20 +282,41 @@ PB.admin = {
     `;
   },
 
+  addSingleTeam() {
+    const name = (document.getElementById("addTeamName")?.value || "").trim();
+    const club = (document.getElementById("addTeamClub")?.value || "").trim();
+    const gender = (document.getElementById("addTeamGender")?.value || "").trim();
+    const rating = (document.getElementById("addTeamRating")?.value || "").trim();
+    if (!name) return PB.app.toast("Vui lòng nhập Tên VĐV / Cặp đấu.");
+    PB.state.data.teams.push({
+      id: "T" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      name, club, gender, rating,
+      group: "A", seed: 0, roster: []
+    });
+    PB.state.save();
+    PB.app.toast(`Đã thêm ${name}!`);
+  },
+
   addBulkTeams() {
     const raw = document.getElementById("bulkTeamsInput").value;
     const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    if (!lines.length) return PB.app.toast("Vui lòng nhập ít nhất 1 tên đội.");
+    if (!lines.length) return PB.app.toast("Vui lòng nhập ít nhất 1 dòng.");
     lines.forEach((line) => {
-      const parts = line.split("-");
-      const name = parts[0].trim();
-      const rating = parts[1] ? parts[1].trim() : "";
+      const parts = line.split("-").map((s) => s.trim());
+      const name = parts[0] || "";
+      let club = "", gender = "", rating = "";
+      if (parts.length === 2) {
+        rating = parts[1];
+      } else if (parts.length === 3) {
+        club = parts[1]; rating = parts[2];
+      } else if (parts.length >= 4) {
+        club = parts[1]; gender = parts[2]; rating = parts[3];
+      }
+      if (!name) return;
       PB.state.data.teams.push({
         id: "T" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-        name,
-        rating,
-        group: "A",
-        seed: 0
+        name, club, gender, rating,
+        group: "A", seed: 0, roster: []
       });
     });
     PB.state.save();

@@ -563,6 +563,42 @@ PB.referee = {
     return counts;
   },
 
+  openLineupPlayerPicker(side, subIdx, slotIdx, reqGender) {
+    const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+    if (!tie || !this.lineupDraft) return;
+    const teamObj = PB.state.getTeam(side === "A" ? tie.teamA : tie.teamB);
+    const roster = (teamObj && teamObj.roster) ? teamObj.roster : [];
+    const counts = this._getUsageCounts(side);
+    const pairs = this.lineupDraft[side];
+    const curVal = pairs[subIdx][slotIdx] || "";
+    const otherVal = pairs[subIdx][slotIdx === 0 ? 1 : 0] || "";
+    const genderLabel = reqGender === "M" ? "Nam" : "Nữ";
+
+    const available = roster.filter((p) => {
+      if (reqGender && p.gender !== reqGender) return false;
+      if (p.name === curVal) return true;
+      if (p.name === otherVal) return false;
+      if ((counts[p.name] || 0) >= 2) return false;
+      return true;
+    });
+
+    const opts = [
+      { value: "", label: `Bỏ chọn (${genderLabel})`, sub: "Để trống ô này" },
+      ...available.map((p) => ({
+        value: p.name,
+        label: p.name + (p.rating ? ` (${p.rating})` : ""),
+        sub: `${p.gender === "M" ? "Nam" : "Nữ"} • Đã đăng ký ${counts[p.name] || 0}/2 trận`
+      }))
+    ];
+
+    PB.ui.openPicker({
+      title: `${tie.subMatches[subIdx]?.label || "Chọn VĐV"} (${genderLabel})`,
+      options: opts,
+      value: curVal,
+      onSelect: (val) => this.onLineupSelect(side, subIdx, slotIdx, val)
+    });
+  },
+
   onLineupSelect(side, subIdx, slotIdx, value) {
     if (!this.lineupDraft) return;
     this.lineupDraft[side][subIdx][slotIdx] = value;

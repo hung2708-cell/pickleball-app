@@ -597,7 +597,7 @@ PB.referee = {
       const genderLabel = reqGender === "M" ? "Nam" : "Nữ";
 
       if (!roster.length) {
-        return `<input type="text" class="input-sm" style="width:100%;" placeholder="Nhập VĐV (${genderLabel})" value="${PB.app.escape(curVal)}" onchange="PB.referee.onLineupSelect('${side}', ${subIdx}, ${slotIdx}, this.value.trim())" />`;
+        return `<input type="text" class="input-sm" style="width:100%;" placeholder="Nhập ${genderLabel}" value="${PB.app.escape(curVal)}" onchange="PB.referee.onLineupSelect('${side}', ${subIdx}, ${slotIdx}, this.value.trim())" />`;
       }
 
       const available = roster.filter((p) => {
@@ -613,7 +613,7 @@ PB.referee = {
 
       return `
         <select class="input-sm" style="width:100%;" onchange="PB.referee.onLineupSelect('${side}', ${subIdx}, ${slotIdx}, this.value)">
-          <option value="">-- Chọn VĐV ${genderLabel} --</option>
+          <option value="">Chọn ${genderLabel}</option>
           ${available.map((p) => {
             const c = counts[p.name] || 0;
             return `<option value="${PB.app.escape(p.name)}" ${curVal === p.name ? "selected" : ""}>${PB.app.escape(p.name)} (${c}/2 trận)</option>`;
@@ -635,10 +635,10 @@ PB.referee = {
     const singlesVal = side === "A" ? this.lineupDraft.singlesA : this.lineupDraft.singlesB;
 
     el.innerHTML = `
-      <div class="ref-console">
+      <div class="ref-console lineup-console">
         <div class="ref-topbar">
           <button class="btn btn-sm btn-secondary" onclick="PB.referee.exitMatch()">← Quay lại</button>
-          <strong>Đăng ký đội hình Đồng đội</strong>
+          <strong>Đăng ký đội hình</strong>
           <span class="badge badge-serieA">Tối đa 2 trận / VĐV</span>
         </div>
 
@@ -655,7 +655,7 @@ PB.referee = {
         ${quotaHtml}
 
         ${tie.subMatches.map((sm, i) => `
-          <div class="card" style="padding:12px;margin-bottom:10px;">
+          <div class="card lineup-match-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
               <strong style="color:var(--primary);">${sm.label}</strong>
               <span class="muted" style="font-size:0.76rem;">Yêu cầu: ${sm.reqGender.map((g) => g === "M" ? "Nam" : "Nữ").join(" + ")}</span>
@@ -676,7 +676,7 @@ PB.referee = {
 
         <div id="lineupErrorBox" class="error-text hidden" style="margin-bottom:10px;"></div>
 
-        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div class="lineup-actions">
           ${side === "B"
             ? `<button class="btn btn-secondary" onclick="PB.referee.goLineupStep('A')">← Sửa lại Đội A</button>`
             : `<span></span>`}

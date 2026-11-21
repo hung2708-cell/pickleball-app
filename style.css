@@ -626,3 +626,121 @@ table.data-table tr.qualify-b td:first-child { border-left: 3px solid var(--gold
 .bt-slot-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .bt-slot-score { font-weight: 800; min-width: 22px; text-align: right; }
 .ios27-alert-sheet { max-width: 340px !important; }
+/* =========================================================
+   INSTANT TAP & VISUAL PICKLEBALL COURT (v6)
+   ========================================================= */
+.btn, .ref-action-btn, .nav-btn, .subtab-btn, .ios27-seg-btn {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ref-action-btn {
+  min-height: 60px;
+  font-size: clamp(1rem, 3.4vw, 1.15rem) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+  transition: transform 0.06s ease, filter 0.08s ease;
+}
+.ref-action-btn:active {
+  transform: scale(0.95);
+  filter: brightness(0.92);
+}
+
+/* SÂN PICKLEBALL TRỰC QUAN */
+.pb-court-card {
+  background: #0f172a;
+  border-radius: 18px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1.5px solid #334155;
+}
+.pb-court-legend {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.74rem; color: #cbd5e1; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;
+}
+.pb-legend-dot {
+  display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px;
+}
+.pb-court-grid {
+  display: grid;
+  grid-template-columns: 1fr 22% 4px 22% 1fr;
+  min-height: 152px;
+  background: #1d4ed8; /* Xanh sân Pickleball chuẩn */
+  border: 3px solid #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+.pb-service-col {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+}
+.pb-box {
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 6px 4px; text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.72rem; font-weight: 700;
+  position: relative;
+  transition: background 0.15s;
+}
+.pb-box-sub {
+  font-size: 0.65rem; opacity: 0.85; font-weight: 600; margin-top: 2px;
+}
+.pb-kitchen {
+  background: #0369a1;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em;
+  writing-mode: vertical-rl; text-orientation: mixed;
+}
+.pb-net {
+  background: repeating-linear-gradient(
+    0deg,
+    #f8fafc 0px, #f8fafc 4px,
+    #334155 4px, #334155 8px
+  );
+  box-shadow: 0 0 8px rgba(0,0,0,0.6);
+}
+
+/* NHẤP NHÁY Ô PHÁT BÓNG (CAM/VÀNG) & ĐỠ BÓNG (XANH NGỌC) */
+@keyframes blinkServe {
+  0%, 100% { background: rgba(234, 88, 12, 0.92); box-shadow: inset 0 0 18px #fde047; }
+  50% { background: rgba(245, 158, 11, 0.55); box-shadow: inset 0 0 6px #fde047; }
+}
+@keyframes blinkReceive {
+  0%, 100% { background: rgba(5, 150, 105, 0.9); box-shadow: inset 0 0 18px #6ee7b7; }
+  50% { background: rgba(16, 185, 129, 0.45); box-shadow: inset 0 0 6px #6ee7b7; }
+}
+.pb-box.is-serve-box {
+  color: #ffffff;
+  animation: blinkServe 1.05s infinite ease-in-out;
+}
+.pb-box.is-receive-box {
+  color: #ffffff;
+  animation: blinkReceive 1.05s infinite ease-in-out;
+}
+.pb-tag-pill {
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 7px; border-radius: 999px;
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+/* COIN TOSS MODAL */
+.toss-coin {
+  width: 76px; height: 76px; border-radius: 50%; margin: 8px auto 12px;
+  background: linear-gradient(135deg, #fbbf24, #d97706);
+  border: 3px solid #fef3c7;
+  color: #111827; font-size: 1.5rem; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 10px 24px rgba(217, 119, 6, 0.35);
+}
+@keyframes coinSpin {
+  0% { transform: rotateY(0deg) scale(1); }
+  50% { transform: rotateY(360deg) scale(1.12); }
+  100% { transform: rotateY(720deg) scale(1); }
+}
+.toss-coin.spinning { animation: coinSpin 0.6s ease-in-out; }

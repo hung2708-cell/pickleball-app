@@ -10,13 +10,15 @@ window.PB = window.PB || {};
 PB.pro = {
   obsCourt: null,
   regFilter: "all", // 'all' | 'pending' | 'approved'
+  countdownInterval: null,
 
   ensureData() {
     const d = PB.state.data;
     if (!d) return;
     if (!d.info) {
-      d.info = { banner: "", subtitle: "", announcement: "", sponsors: [], gallery: [] };
+      d.info = { banner: "", subtitle: "", announcement: "", startTime: "", sponsors: [], gallery: [] };
     }
+    if (typeof d.info.startTime !== "string") d.info.startTime = "";
     if (!Array.isArray(d.info.sponsors)) d.info.sponsors = [];
     if (!Array.isArray(d.info.gallery)) d.info.gallery = [];
     if (!d.paymentConfig) {
@@ -106,6 +108,8 @@ PB.pro = {
         </div>
 
         <div class="sc-hero-body">
+          ${info.startTime ? `<div id="scCountdownBox" class="sc-countdown-box"></div>` : ""}
+
           ${cfg.enabled ? `
             <div class="sc-reg-progress-wrap">
               <div class="sc-reg-progress-meta">
@@ -118,11 +122,17 @@ PB.pro = {
             </div>
             <div class="sc-hero-cta-row">
               <button class="btn sc-btn-register" onclick="PB.pro.openRegisterModal()">
-                <span>+ Đăng ký thi đấu ngay</span>
+                <span>+ Đăng ký ngay</span>
               </button>
+              ${d.teams.length ? `<button class="btn btn-success sc-btn-checkin" onclick="PB.pro.openCheckInModal()">✓ Check-in</button>` : ""}
+              <button class="btn btn-secondary sc-btn-qr" onclick="PB.viewer.openQrModal()">QR</button>
+            </div>
+          ` : (d.teams.length ? `
+            <div class="sc-hero-cta-row">
+              <button class="btn btn-success sc-btn-checkin" style="flex:1;" onclick="PB.pro.openCheckInModal()">✓ Check-in đến sân (${d.teams.filter(t => t.checkedIn).length}/${d.teams.length})</button>
               <button class="btn btn-secondary sc-btn-qr" onclick="PB.viewer.openQrModal()">Mã QR</button>
             </div>
-          ` : ""}
+          ` : "")}
 
           ${info.announcement ? `
             <div class="sc-announcement-box">
@@ -169,17 +179,115 @@ PB.pro = {
             <div class="sc-bank-row"><span>Số đội đã đăng ký</span><strong>${curTeams} / ${maxSlots} đội</strong></div>
             <div class="sc-bank-row"><span>Lệ phí tham dự</span><strong style="color:var(--primary);">${feeTxt}</strong></div>
           </div>
-          ${d.teams.length ? `
+          ${(d.teams.length || pendingCount) ? `
             <div style="margin-top:12px;">
-              <div class="muted" style="font-size:0.78rem;font-weight:700;margin-bottom:6px;">DANH SÁCH ĐỘI ĐÃ ĐƯỢC DUYỆT (${d.teams.length}):</div>
-              <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                ${d.teams.map((t, idx) => `<span class="quota-chip">${idx + 1}. ${PB.app.escape(t.name)}</span>`).join("")}
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:6px;flex-wrap:wrap;">
+                <span class="muted" style="font-size:0.76rem;font-weight:800;">VĐV / ĐỘI ĐÃ ĐĂNG KÝ (${d.teams.length + pendingCount})</span>
+                <span class="badge badge-done">Đã đến sân: ${d.teams.filter(t => t.checkedIn).length}/${d.teams.length}</span>
+              </div>
+              <div class="sc-public-roster">
+                ${d.teams.map((t, idx) => `
+                  <div class="sc-roster-row ${t.checkedIn ? "is-checkedin" : ""}" onclick="PB.pro.openCheckInModal()">
+                    <div class="sc-roster-name">
+                      <strong>${idx + 1}. ${PB.app.escape(t.name)}</strong>
+                      ${t.club ? `<span class="muted" style="font-size:0.74rem;"> • ${PB.app.escape(t.club)}</span>` : ""}
+                    </div>
+                    ${t.checkedIn
+                      ? `<span class="badge badge-done">✓ Đã đến${t.checkedInAt ? " " + PB.app.escape(t.checkedInAt) : ""}</span>`
+                      : `<span class="badge badge-wait">Chưa đến</span>`}
+                  </div>
+                `).join("")}
+                ${d.registrations.filter(r => r.status === "pending").map((r) => `
+                  <div class="sc-roster-row is-pending">
+                    <div class="sc-roster-name">
+                      <strong>${PB.app.escape(r.name)}</strong>
+                      ${r.club ? `<span class="muted" style="font-size:0.74rem;"> • ${PB.app.escape(r.club)}</span>` : ""}
+                    </div>
+                    <span class="badge badge-serieA">⏳ Chờ duyệt</span>
+                  </div>
+                `).join("")}
               </div>
             </div>
           ` : ""}
         </div>
       ` : ""}
     `;
+    this.startCountdown(info.startTime);
+  },
+
+  startCountdown(startTimeStr) {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
+    }
+    if (!startTimeStr) return;
+    const targetMs = new Date(startTimeStr).getTime();
+    if (isNaN(targetMs)) return;
+
+    const update = () => {
+      const box = document.getElementById("scCountdownBox");
+      if (!box) return;
+      const diff = targetMs - Date.now();
+      if (diff <= 0) {
+        box.innerHTML = `<div class="sc-cd-live">🔥 GIẢI ĐẤU ĐANG DIỄN RA</div>`;
+        if (this.countdownInterval) { clearInterval(this.countdownInterval); this.countdownInterval = null; }
+        return;
+      }
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      const pad = (n) => String(n).padStart(2, "0");
+      box.innerHTML = `
+        <div class="sc-cd-label">Đếm ngược đến giờ khai mạc</div>
+        <div class="sc-cd-grid">
+          <div class="sc-cd-cell"><strong>${pad(days)}</strong><span>Ngày</span></div>
+          <div class="sc-cd-cell"><strong>${pad(hours)}</strong><span>Giờ</span></div>
+          <div class="sc-cd-cell"><strong>${pad(mins)}</strong><span>Phút</span></div>
+          <div class="sc-cd-cell"><strong>${pad(secs)}</strong><span>Giây</span></div>
+        </div>
+      `;
+    };
+    update();
+    this.countdownInterval = setInterval(update, 1000);
+  },
+
+  openCheckInModal() {
+    this.ensureData();
+    const teams = PB.state.data.teams || [];
+    if (!teams.length) {
+      return PB.ui.alert("Chưa có đội/VĐV chính thức nào trong danh sách để check-in.", "Check-in đến sân");
+    }
+    const checkedCount = teams.filter((t) => t.checkedIn).length;
+    PB.app.openInfoModal(
+      `Check-in đến sân (${checkedCount}/${teams.length})`,
+      `
+        <p class="muted" style="margin:0 0 10px;">Bấm vào tên đội/VĐV của bạn để báo đã có mặt tại sân thi đấu:</p>
+        <div class="ios27-picker-list" style="padding:0;max-height:52vh;">
+          ${teams.map((t, idx) => `
+            <button type="button" class="ios27-picker-item ${t.checkedIn ? "active" : ""}" onclick="PB.pro.toggleCheckIn('${t.id}', true)">
+              <div>
+                <div>${idx + 1}. ${PB.app.escape(t.name)}</div>
+                <div class="muted" style="font-size:0.74rem;">
+                  ${t.checkedIn ? `✓ Đã có mặt tại sân${t.checkedInAt ? " (" + PB.app.escape(t.checkedInAt) + ")" : ""}` : "Chưa check-in"}
+                </div>
+              </div>
+              <span class="ios27-picker-check">${t.checkedIn ? "✓" : ""}</span>
+            </button>
+          `).join("")}
+        </div>
+      `
+    );
+  },
+
+  toggleCheckIn(teamId, reopenModal = false) {
+    const t = PB.state.data.teams.find((x) => x.id === teamId);
+    if (!t) return;
+    t.checkedIn = !t.checkedIn;
+    t.checkedInAt = t.checkedIn ? new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "";
+    PB.state.save();
+    PB.app.toast(t.checkedIn ? `✓ ${t.name} đã check-in đến sân!` : `Đã hủy check-in của ${t.name}`);
+    if (reopenModal) this.openCheckInModal();
   },
 
   openLightbox(idx) {
@@ -679,9 +787,15 @@ PB.pro = {
           </div>
           ${info.banner ? `<img src="${PB.app.escape(info.banner)}" style="margin-top:8px;max-height:140px;border-radius:10px;max-width:100%;object-fit:cover;" />` : ""}
         </div>
-        <div class="form-group">
-          <label>Thời gian • Địa điểm sân</label>
-          <input type="text" id="proSubtitle" class="input" value="${PB.app.escape(info.subtitle)}" placeholder="VD: 07:30 Chủ nhật 22/11/2026 • Cụm sân Pickleball Cao Bằng" />
+        <div class="form-grid" style="margin-bottom:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Giờ khai mạc (Đếm ngược)</label>
+            <input type="datetime-local" id="proStartTime" class="input" value="${PB.app.escape(info.startTime || "")}" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Địa điểm sân / Ghi chú ngắn</label>
+            <input type="text" id="proSubtitle" class="input" value="${PB.app.escape(info.subtitle)}" placeholder="VD: Cụm sân Pickleball Cao Bằng" />
+          </div>
         </div>
         <div class="form-group">
           <label>Thông báo / Điều lệ / Cơ cấu giải thưởng</label>
@@ -766,10 +880,11 @@ PB.pro = {
 
   saveInfoText() {
     this.ensureData();
+    PB.state.data.info.startTime = (document.getElementById("proStartTime")?.value || "").trim();
     PB.state.data.info.subtitle = (document.getElementById("proSubtitle")?.value || "").trim();
     PB.state.data.info.announcement = (document.getElementById("proAnnouncement")?.value || "").trim();
     PB.state.save();
-    PB.app.toast("Đã lưu thông tin giải đấu!");
+    PB.app.toast("Đã lưu thông tin & giờ đếm ngược!");
   },
 
   savePaymentConfig() {

@@ -12,6 +12,13 @@ PB.viewer = {
   standingView: "groups",
   activeTvMatchId: null,
   expandedLiveCards: {},
+  highlightedTeamId: null,
+
+  toggleHighlightTeam(teamId) {
+    if (!teamId) return;
+    this.highlightedTeamId = (this.highlightedTeamId === teamId) ? null : teamId;
+    this.renderAll();
+  },
 
   toggleLiveDetail(matchId) {
     this.expandedLiveCards[matchId] = !this.expandedLiveCards[matchId];
@@ -236,8 +243,9 @@ PB.viewer = {
         ? m.sets.map((s) => `${s.a}-${s.b}`).join(" / ")
         : `${m.scoreA} - ${m.scoreB}`);
 
+    const isMatchHl = this.highlightedTeamId && (m.teamA === this.highlightedTeamId || m.teamB === this.highlightedTeamId);
     return `
-      <div class="match-item">
+      <div class="match-item ${isMatchHl ? "match-item-hl" : ""}">
         <div>
           <div class="match-meta">
             ${statusBadge} ${stageBadge}
@@ -246,9 +254,9 @@ PB.viewer = {
             ${m.finishReason ? `<span>(${m.finishReason})</span>` : ""}
           </div>
           <div class="match-teams">
-            <span style="${m.winner === "A" ? "color:var(--success)" : ""}">${PB.app.escape(nameA)}</span>
+            <span class="${m.teamA ? "bt-clickable" : ""} ${this.highlightedTeamId && m.teamA === this.highlightedTeamId ? "team-name-hl" : ""}" style="${m.winner === "A" ? "color:var(--emerald)" : ""}" ${m.teamA ? `onclick="PB.viewer.toggleHighlightTeam('${m.teamA}')"` : ""}>${PB.app.escape(nameA)}</span>
             <span class="muted"> vs </span>
-            <span style="${m.winner === "B" ? "color:var(--success)" : ""}">${PB.app.escape(nameB)}</span>
+            <span class="${m.teamB ? "bt-clickable" : ""} ${this.highlightedTeamId && m.teamB === this.highlightedTeamId ? "team-name-hl" : ""}" style="${m.winner === "B" ? "color:var(--emerald)" : ""}" ${m.teamB ? `onclick="PB.viewer.toggleHighlightTeam('${m.teamB}')"` : ""}>${PB.app.escape(nameB)}</span>
           </div>
           ${this._renderTeamSubMiniStrip(m)}
         </div>
@@ -365,9 +373,12 @@ PB.viewer = {
                             const rank = rIdx + 1;
                             const isAdv = (st === "serieB") ? (rank === 3 || rank === 4) : (rank === 1 || rank === 2);
                             const rankTag = rank === 1 ? `Nhất ${g}` : rank === 2 ? `Nhì ${g}` : rank === 3 ? `Ba ${g}` : rank === 4 ? `Tư ${g}` : `#${rank}`;
-                            const ptsTxt = PB.state.data.settings.category === "team" ? `${r.tablePts}đ` : `${r.wins}T`;
+                            const ptsTxt = PB.state.data.settings.category === "team"
+                              ? `${r.tablePts}đ (${r.ptsFor}đ)`
+                              : `${r.wins}T (${r.ptsFor}đ)`;
+                            const isHl = this.highlightedTeamId && this.highlightedTeamId === r.teamId;
                             return `
-                              <div class="bt-slot ${isAdv ? "winner" : ""}">
+                              <div class="bt-slot bt-clickable ${isAdv ? "winner" : ""} ${isHl ? "team-hl" : ""}" onclick="PB.viewer.toggleHighlightTeam('${r.teamId}')">
                                 <span class="bt-seed-tag">${rankTag}</span>
                                 <span class="bt-slot-name">${PB.app.escape(r.name)}</span>
                                 <span class="bt-slot-score">${ptsTxt}</span>
@@ -397,12 +408,12 @@ PB.viewer = {
                               <span>${PB.app.escape(m.roundName)}</span>
                               <strong>${statusTxt}</strong>
                             </div>
-                            <div class="bt-slot ${m.winner === "A" ? "winner" : ""}">
+                            <div class="bt-slot ${m.teamA ? "bt-clickable" : ""} ${m.winner === "A" ? "winner" : ""} ${this.highlightedTeamId && m.teamA === this.highlightedTeamId ? "team-hl" : ""}" ${m.teamA ? `onclick="PB.viewer.toggleHighlightTeam('${m.teamA}')"` : ""}>
                               ${m.labelA ? `<span class="bt-seed-tag">${PB.app.escape(m.labelA)}</span>` : ""}
                               <span class="bt-slot-name">${PB.app.escape(nameA)}</span>
                               <span class="bt-slot-score">${m.status === "pending" ? "-" : m.scoreA}</span>
                             </div>
-                            <div class="bt-slot ${m.winner === "B" ? "winner" : ""}">
+                            <div class="bt-slot ${m.teamB ? "bt-clickable" : ""} ${m.winner === "B" ? "winner" : ""} ${this.highlightedTeamId && m.teamB === this.highlightedTeamId ? "team-hl" : ""}" ${m.teamB ? `onclick="PB.viewer.toggleHighlightTeam('${m.teamB}')"` : ""}>
                               ${m.labelB ? `<span class="bt-seed-tag">${PB.app.escape(m.labelB)}</span>` : ""}
                               <span class="bt-slot-name">${PB.app.escape(nameB)}</span>
                               <span class="bt-slot-score">${m.status === "pending" ? "-" : m.scoreB}</span>
@@ -448,7 +459,7 @@ PB.viewer = {
       </div>
       <div class="tv-board">
         <div class="tv-team ${m.server === "A" ? "serving" : ""}">
-          <div class="tv-team-name">${m.server === "A" ? "<svg style="width:0.95em;height:0.95em;vertical-align:-0.12em;margin-right:6px;" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="3" width="16" height="19" rx="7" fill="#f97316" stroke="#fde047" stroke-width="1.8"/><rect x="12" y="22" width="4" height="7.5" rx="1.6" fill="#cbd5e1"/><circle cx="24" cy="22" r="5" fill="#fde047" stroke="#ea580c" stroke-width="1.4"/><circle cx="22.6" cy="20.8" r="0.85" fill="#ea580c"/><circle cx="25.5" cy="21" r="0.85" fill="#ea580c"/><circle cx="24" cy="23.5" r="0.85" fill="#ea580c"/></svg>" : ""}${PB.app.escape(PB.state.getTeamName(m.teamA))}</div>
+          <div class="tv-team-name">${m.server === "A" ? '<svg style="width:0.95em;height:0.95em;vertical-align:-0.12em;margin-right:6px;" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="3" width="16" height="19" rx="7" fill="#f97316" stroke="#fde047" stroke-width="1.8"/><rect x="12" y="22" width="4" height="7.5" rx="1.6" fill="#cbd5e1"/><circle cx="24" cy="22" r="5" fill="#fde047" stroke="#ea580c" stroke-width="1.4"/><circle cx="22.6" cy="20.8" r="0.85" fill="#ea580c"/><circle cx="25.5" cy="21" r="0.85" fill="#ea580c"/><circle cx="24" cy="23.5" r="0.85" fill="#ea580c"/></svg>' : ""}${PB.app.escape(PB.state.getTeamName(m.teamA))}</div>
           <div class="tv-score">${m.scoreA}</div>
           <div class="muted" style="font-size:1.2rem;margin-top:8px;">Sets: ${m.setsA}</div>
         </div>
@@ -457,7 +468,7 @@ PB.viewer = {
           <div style="font-size:2.6rem;color:#facc15;">${callout}</div>
         </div>
         <div class="tv-team ${m.server === "B" ? "serving" : ""}">
-          <div class="tv-team-name">${m.server === "B" ? "<svg style="width:0.95em;height:0.95em;vertical-align:-0.12em;margin-right:6px;" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="3" width="16" height="19" rx="7" fill="#f97316" stroke="#fde047" stroke-width="1.8"/><rect x="12" y="22" width="4" height="7.5" rx="1.6" fill="#cbd5e1"/><circle cx="24" cy="22" r="5" fill="#fde047" stroke="#ea580c" stroke-width="1.4"/><circle cx="22.6" cy="20.8" r="0.85" fill="#ea580c"/><circle cx="25.5" cy="21" r="0.85" fill="#ea580c"/><circle cx="24" cy="23.5" r="0.85" fill="#ea580c"/></svg>" : ""}${PB.app.escape(PB.state.getTeamName(m.teamB))}</div>
+          <div class="tv-team-name">${m.server === "B" ? '<svg style="width:0.95em;height:0.95em;vertical-align:-0.12em;margin-right:6px;" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="3" width="16" height="19" rx="7" fill="#f97316" stroke="#fde047" stroke-width="1.8"/><rect x="12" y="22" width="4" height="7.5" rx="1.6" fill="#cbd5e1"/><circle cx="24" cy="22" r="5" fill="#fde047" stroke="#ea580c" stroke-width="1.4"/><circle cx="22.6" cy="20.8" r="0.85" fill="#ea580c"/><circle cx="25.5" cy="21" r="0.85" fill="#ea580c"/><circle cx="24" cy="23.5" r="0.85" fill="#ea580c"/></svg>' : ""}${PB.app.escape(PB.state.getTeamName(m.teamB))}</div>
           <div class="tv-score" style="color:#fb923c;">${m.scoreB}</div>
           <div class="muted" style="font-size:1.2rem;margin-top:8px;">Sets: ${m.setsB}</div>
         </div>

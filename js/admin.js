@@ -17,6 +17,7 @@ PB.admin = {
     document.getElementById("adminContent").classList.toggle("hidden", !allowed);
     if (!allowed) return;
 
+    if (PB.pro) PB.pro.renderAdminDashboardHeader();
     this.renderTeamsSub();
     this.renderScheduleSub();
     this.renderSettingsSub();

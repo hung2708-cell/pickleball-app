@@ -1,14 +1,15 @@
 /* =========================================================
-   js/pro.js — GÓI NÂNG CẤP SPORTCONNECT PRO (v34)
-   1. Admin đăng Banner, Thông báo/Điều lệ, Ảnh giải đấu & Nhà tài trợ (tự nén ảnh)
-   2. Cổng VĐV tự đăng ký + VietQR lệ phí tự động + Admin duyệt đơn
-   3. Khung tỷ số Livestream nền trong suốt (?obs=1, ?obs=2...)
-   4. BXH Điểm trình CLB tích lũy qua nhiều giải (Elo Pickleball)
+   js/pro.js — GÓI NÂNG CẤP SPORTCONNECT PRO (v36)
+   1. Giao diện Hero Mở Cổng Đăng Ký chuẩn SportConnect (Banner, Tiến độ slot, Lệ phí, CTA)
+   2. Cổng VĐV tự đăng ký + Vé VietQR (có nút Sao chép STK & Nội dung CK)
+   3. Bảng điều khiển Admin chuẩn SportConnect (KPI Doanh thu, Lọc đơn chờ duyệt, Duyệt & Nhắn Zalo)
+   4. Khung tỷ số Livestream nền trong suốt (?obs=1, ?obs=2...) & BXH Điểm trình CLB (Elo)
    ========================================================= */
 window.PB = window.PB || {};
 
 PB.pro = {
   obsCourt: null,
+  regFilter: "all", // 'all' | 'pending' | 'approved'
 
   ensureData() {
     const d = PB.state.data;
@@ -19,13 +20,13 @@ PB.pro = {
     if (!Array.isArray(d.info.sponsors)) d.info.sponsors = [];
     if (!Array.isArray(d.info.gallery)) d.info.gallery = [];
     if (!d.paymentConfig) {
-      d.paymentConfig = { enabled: true, bankId: "MB", accountNo: "", accountName: "", fee: 200000, prefix: "PB2026" };
+      d.paymentConfig = { enabled: true, bankId: "MB", accountNo: "", accountName: "", fee: 200000, prefix: "PB2026", maxSlots: 32 };
     }
+    if (!d.paymentConfig.maxSlots) d.paymentConfig.maxSlots = 32;
     if (!Array.isArray(d.registrations)) d.registrations = [];
     if (!Array.isArray(d.clubRanking)) d.clubRanking = [];
   },
 
-  // Tự động nén ảnh upload trên trình duyệt để lưu nhẹ trên Firebase (~80-130KB)
   compressImage(file, maxWidth = 1000, quality = 0.72) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -50,35 +51,87 @@ PB.pro = {
     });
   },
 
+  copyText(txt, label = "Đã sao chép!") {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(() => PB.app.toast(label)).catch(() => PB.ui.alert(txt, label));
+    } else {
+      PB.ui.alert(txt, label);
+    }
+  },
+
   // =========================================================
-  // 1. HIỂN THỊ BANNER, THÔNG TIN & ẢNH GIẢI CHO KHÁN GIẢ
+  // 1. GIAO DIỆN HERO MỞ CỔNG ĐĂNG KÝ CHUẨN SPORTCONNECT
   // =========================================================
   renderPublicInfo() {
     const el = document.getElementById("proPublicInfoSection");
     if (!el || !PB.state.data) return;
     this.ensureData();
-    const info = PB.state.data.info;
+    const d = PB.state.data;
+    const info = d.info;
+    const cfg = d.paymentConfig;
     const hasBanner = !!(info.banner && info.banner.trim());
     const hasText = !!(info.subtitle || info.announcement);
     const hasGallery = info.gallery.length > 0;
     const hasSponsors = info.sponsors.length > 0;
 
-    if (!hasBanner && !hasText && !hasGallery && !hasSponsors) {
+    // Luôn hiển thị Hero Cổng Đăng Ký nếu đang mở đăng ký hoặc có thông tin giải
+    if (!cfg.enabled && !hasBanner && !hasText && !hasGallery && !hasSponsors) {
       el.innerHTML = "";
       el.classList.add("hidden");
       return;
     }
 
+    const maxSlots = Number(cfg.maxSlots) || 32;
+    const curTeams = d.teams.length;
+    const pendingCount = d.registrations.filter((r) => r.status === "pending").length;
+    const pct = Math.min(100, Math.round((curTeams / maxSlots) * 100));
+    const feeTxt = Number(cfg.fee || 0) > 0 ? Number(cfg.fee).toLocaleString("vi-VN") + "đ" : "Miễn phí";
+
     el.classList.remove("hidden");
     el.innerHTML = `
-      <div class="pro-info-card">
-        ${hasBanner ? `<div class="pro-banner-wrap"><img src="${PB.app.escape(info.banner)}" alt="Banner giải đấu" /></div>` : ""}
-        ${hasText ? `
-          <div class="pro-info-body">
-            ${info.subtitle ? `<div class="pro-subtitle">${PB.app.escape(info.subtitle)}</div>` : ""}
-            ${info.announcement ? `<div class="pro-announcement">${PB.app.escape(info.announcement).replace(/\n/g, "<br/>")}</div>` : ""}
+      <div class="sc-hero-card">
+        <div class="sc-hero-cover ${hasBanner ? "has-img" : ""}" ${hasBanner ? `style="background-image:url('${PB.app.escape(info.banner)}')"` : ""}>
+          <div class="sc-hero-overlay">
+            <div class="sc-hero-top-badges">
+              ${cfg.enabled
+                ? `<span class="sc-status-pill open">● ĐANG MỞ ĐĂNG KÝ</span>`
+                : `<span class="sc-status-pill closed">ĐÃ ĐÓNG ĐĂNG KÝ</span>`}
+              <span class="sc-fee-pill">Lệ phí: ${feeTxt}</span>
+            </div>
+            <div class="sc-hero-title-block">
+              <h2>${PB.app.escape(d.tournamentName)}</h2>
+              ${info.subtitle ? `<div class="sc-hero-sub">📍 ${PB.app.escape(info.subtitle)}</div>` : ""}
+            </div>
           </div>
-        ` : ""}
+        </div>
+
+        <div class="sc-hero-body">
+          ${cfg.enabled ? `
+            <div class="sc-reg-progress-wrap">
+              <div class="sc-reg-progress-meta">
+                <span>Suất thi đấu: <strong>${curTeams}/${maxSlots}</strong> đội ${pendingCount ? `<span class="muted">(${pendingCount} chờ duyệt)</span>` : ""}</span>
+                <strong>${pct}%</strong>
+              </div>
+              <div class="sc-progress-track">
+                <div class="sc-progress-fill" style="width:${pct}%;"></div>
+              </div>
+            </div>
+            <div class="sc-hero-cta-row">
+              <button class="btn sc-btn-register" onclick="PB.pro.openRegisterModal()">
+                <span>+ Đăng ký thi đấu ngay</span>
+              </button>
+              <button class="btn btn-secondary sc-btn-qr" onclick="PB.viewer.openQrModal()">Mã QR</button>
+            </div>
+          ` : ""}
+
+          ${info.announcement ? `
+            <div class="sc-announcement-box">
+              <div class="sc-ann-title">Thông báo & Điều lệ BTC</div>
+              <div class="sc-ann-text">${PB.app.escape(info.announcement).replace(/\n/g, "<br/>")}</div>
+            </div>
+          ` : ""}
+        </div>
+
         ${hasSponsors ? `
           <div class="pro-sponsors-bar">
             <span class="pro-bar-label">Nhà tài trợ:</span>
@@ -92,6 +145,7 @@ PB.pro = {
             </div>
           </div>
         ` : ""}
+
         ${hasGallery ? `
           <div class="pro-gallery-strip">
             ${info.gallery.map((g, idx) => `
@@ -117,18 +171,40 @@ PB.pro = {
   },
 
   // =========================================================
-  // 2. CỔNG VĐV TỰ ĐĂNG KÝ + VIETQR ĐÓNG LỆ PHÍ
+  // 2. CỔNG VĐV TỰ ĐĂNG KÝ + VÉ VIETQR CHUẨN SPORTCONNECT
   // =========================================================
   openRegisterModal() {
     this.ensureData();
-    const cfg = PB.state.data.paymentConfig;
+    const d = PB.state.data;
+    const cfg = d.paymentConfig;
     if (!cfg.enabled) {
       return PB.ui.alert("Ban tổ chức hiện đã đóng cổng đăng ký trực tuyến.", "Thông báo");
     }
-    const feeTxt = Number(cfg.fee || 0).toLocaleString("vi-VN") + "đ";
+    const feeTxt = Number(cfg.fee || 0) > 0 ? Number(cfg.fee).toLocaleString("vi-VN") + "đ" : "Miễn phí";
+    const maxSlots = Number(cfg.maxSlots) || 32;
+    const remain = Math.max(0, maxSlots - d.teams.length);
+
     PB.app.openInfoModal(
-      "Đăng ký thi đấu trực tuyến",
+      "Đăng ký thi đấu",
       `
+        <div class="sc-reg-modal-banner">
+          <div>
+            <div style="font-weight:800;font-size:0.92rem;color:var(--text);">${PB.app.escape(d.tournamentName)}</div>
+            <div class="muted" style="font-size:0.76rem;">Còn trống: <strong>${remain}/${maxSlots}</strong> suất</div>
+          </div>
+          <div class="sc-reg-fee-tag">${feeTxt}</div>
+        </div>
+
+        <div class="form-group">
+          <label>Nội dung đăng ký</label>
+          <input type="hidden" id="regGender" value="Nam Nữ" />
+          <div class="sc-cat-grid" id="regCatGrid">
+            ${["Nam Nữ", "Nam", "Nữ", "Đồng đội"].map((c, i) => `
+              <button type="button" class="sc-cat-pill ${i === 0 ? "active" : ""}" onclick="PB.pro.selectRegCat(this, '${c}')">${c}</button>
+            `).join("")}
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Tên VĐV / Cặp đấu *</label>
           <input type="text" id="regName" class="input" placeholder="VD: Hùng / Dương" />
@@ -143,28 +219,20 @@ PB.pro = {
             <input type="text" id="regClub" class="input" placeholder="VD: CLB Bính Dần" />
           </div>
         </div>
-        <div class="form-grid" style="gap:8px;">
-          <div class="form-group">
-            <label>Giới tính / Nội dung</label>
-            <select id="regGender" class="input">
-              <option value="Nam Nữ">Đôi Nam Nữ</option>
-              <option value="Nam">Đôi Nam</option>
-              <option value="Nữ">Đôi Nữ</option>
-              <option value="Đồng đội">Đồng đội</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Trình dự kiến</label>
-            <input type="text" id="regRating" class="input" placeholder="VD: 3.0" />
-          </div>
+        <div class="form-group">
+          <label>Trình dự kiến (Rating)</label>
+          <input type="text" id="regRating" class="input" placeholder="VD: 3.0" />
         </div>
-        <div class="toss-summary-pill" style="margin-top:6px;">
-          Lệ phí giải: <strong style="color:var(--primary);">${feeTxt}</strong>
-          ${cfg.accountNo ? `<br/><span class="muted">Sau khi bấm Đăng ký, hệ thống sẽ hiện mã VietQR để chuyển khoản nhanh.</span>` : ""}
-        </div>
-        <button class="btn ios27-btn-primary mt-12" onclick="PB.pro.submitRegistration()">Gửi đăng ký & Lấy mã VietQR</button>
+
+        <button class="btn ios27-btn-primary mt-12" onclick="PB.pro.submitRegistration()">Xác nhận đăng ký & Lấy mã VietQR</button>
       `
     );
+  },
+
+  selectRegCat(btn, val) {
+    document.getElementById("regGender").value = val;
+    document.querySelectorAll("#regCatGrid .sc-cat-pill").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
   },
 
   submitRegistration() {
@@ -190,17 +258,29 @@ PB.pro = {
       const memo = `${cfg.prefix || "PB"} ${name}`.replace(/[^a-zA-Z0-9\s]/g, "").slice(0, 40);
       const qrUrl = `https://img.vietqr.io/image/${encodeURIComponent(cfg.bankId)}-${encodeURIComponent(cfg.accountNo)}-compact2.png?amount=${Number(cfg.fee || 0)}&addInfo=${encodeURIComponent(memo)}&accountName=${encodeURIComponent(cfg.accountName || "")}`;
       PB.app.openInfoModal(
-        "Quét VietQR đóng lệ phí",
+        "Thanh toán lệ phí VietQR",
         `
           <div class="text-center">
-            <div class="badge badge-done" style="margin-bottom:8px;">✓ Đã ghi nhận đơn đăng ký của ${PB.app.escape(name)}</div>
-            <p class="muted" style="margin:4px 0 8px;">Quét mã bên dưới để chuyển lệ phí <strong>${Number(cfg.fee || 0).toLocaleString("vi-VN")}đ</strong>. BTC sẽ duyệt ngay khi nhận được tiền.</p>
-            <img src="${qrUrl}" alt="VietQR" style="max-width:250px;width:100%;border-radius:14px;border:1px solid var(--border);padding:6px;background:#fff;" />
-            <div class="toss-summary-pill" style="margin-top:8px;text-align:left;font-size:0.8rem;">
-              <div>Ngân hàng: <strong>${PB.app.escape(cfg.bankId)}</strong></div>
-              <div>Số TK: <strong>${PB.app.escape(cfg.accountNo)}</strong></div>
-              ${cfg.accountName ? `<div>Chủ TK: <strong>${PB.app.escape(cfg.accountName)}</strong></div>` : ""}
-              <div>Nội dung: <strong>${PB.app.escape(memo)}</strong></div>
+            <div class="badge badge-done" style="margin-bottom:8px;">✓ Đã tiếp nhận đơn của ${PB.app.escape(name)}</div>
+            <img src="${qrUrl}" alt="VietQR" style="max-width:235px;width:100%;border-radius:16px;border:1px solid var(--border);padding:6px;background:#fff;box-shadow:var(--shadow-sm);" />
+            <div class="sc-bank-ticket">
+              <div class="sc-bank-row"><span>Ngân hàng</span><strong>${PB.app.escape(cfg.bankId)}</strong></div>
+              <div class="sc-bank-row">
+                <span>Số tài khoản</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <strong>${PB.app.escape(cfg.accountNo)}</strong>
+                  <button class="btn btn-sm btn-secondary" style="padding:2px 7px;font-size:0.7rem;" onclick="PB.pro.copyText('${PB.app.escape(cfg.accountNo)}','Đã chép STK!')">Chép</button>
+                </div>
+              </div>
+              ${cfg.accountName ? `<div class="sc-bank-row"><span>Chủ tài khoản</span><strong>${PB.app.escape(cfg.accountName)}</strong></div>` : ""}
+              <div class="sc-bank-row"><span>Số tiền</span><strong style="color:var(--primary);">${Number(cfg.fee || 0).toLocaleString("vi-VN")}đ</strong></div>
+              <div class="sc-bank-row">
+                <span>Nội dung CK</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <strong>${PB.app.escape(memo)}</strong>
+                  <button class="btn btn-sm btn-secondary" style="padding:2px 7px;font-size:0.7rem;" onclick="PB.pro.copyText('${PB.app.escape(memo)}','Đã chép nội dung CK!')">Chép</button>
+                </div>
+              </div>
             </div>
           </div>
         `
@@ -339,11 +419,11 @@ PB.pro = {
   copyObsLink(courtNum) {
     const base = window.location.origin + window.location.pathname;
     const url = `${base}?obs=${courtNum}`;
-    navigator.clipboard?.writeText(url).then(() => PB.app.toast(`Đã chép link OBS Sân ${courtNum}!`)).catch(() => PB.ui.alert(url, `Link OBS Sân ${courtNum}`));
+    this.copyText(url, `Đã chép link OBS Sân ${courtNum}!`);
   },
 
   // =========================================================
-  // 4. HỒ SƠ VĐV & ĐIỂM TRÌNH TÍCH LŨY CLB (ELO PICKLEBALL)
+  // 4. BXH ĐIỂM TRÌNH CLB (ELO PICKLEBALL)
   // =========================================================
   renderClubRanking() {
     const el = document.getElementById("standingsRankingView");
@@ -372,7 +452,7 @@ PB.pro = {
                   <td>${p.wins || 0} - ${p.losses || 0}</td>
                   <td><strong style="color:var(--primary);font-size:1rem;">${Number(p.rating || 3.0).toFixed(2)}</strong></td>
                 </tr>
-              `).join("") : `<tr><td colspan="6" class="muted text-center">Chưa có dữ liệu điểm trình. BTC vào Quản lý → Truyền thông & Pro để chốt điểm trình sau giải.</td></tr>`}
+              `).join("") : `<tr><td colspan="6" class="muted text-center">Chưa có dữ liệu điểm trình. BTC vào Quản lý → Ảnh, QR & Pro để chốt điểm trình sau giải.</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -405,7 +485,7 @@ PB.pro = {
       return rec;
     };
 
-    const K = 0.16; // Hệ số biến động điểm trình chuẩn thang 2.0 - 6.0
+    const K = 0.16;
     finished.forEach((m) => {
       const pA = findOrCreate(m.teamA);
       const pB = findOrCreate(m.teamB);
@@ -424,8 +504,55 @@ PB.pro = {
   },
 
   // =========================================================
-  // 5. GIAO DIỆN ADMIN: TRUYỀN THÔNG, ĐĂNG KÝ, OBS & TRÌNH CLB
+  // 5. THANH DASHBOARD TÀI KHOẢN ADMIN CHUẨN SPORTCONNECT
   // =========================================================
+  renderAdminDashboardHeader() {
+    const el = document.getElementById("adminDashboardHeader");
+    if (!el || !PB.state.data) return;
+    this.ensureData();
+    const d = PB.state.data;
+    const pendingRegs = d.registrations.filter((r) => r.status === "pending").length;
+    const approvedRegs = d.registrations.filter((r) => r.status === "approved").length;
+    const estRevenue = approvedRegs * Number(d.paymentConfig.fee || 0);
+    const doneMatches = d.matches.filter((m) => m.status === "finished").length;
+
+    el.innerHTML = `
+      <div class="sc-admin-banner">
+        <div class="sc-admin-profile">
+          <div class="sc-admin-avatar">BTC</div>
+          <div>
+            <div class="sc-admin-title">Quản trị viên giải đấu</div>
+            <div class="sc-admin-sub">${PB.app.escape(d.tournamentName)} • ${d.paymentConfig.enabled ? "Cổng ĐK đang mở" : "Cổng ĐK đã đóng"}</div>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="PB.app.logout()">Đăng xuất</button>
+      </div>
+      <div class="sc-admin-kpi-grid">
+        <div class="sc-kpi-card" onclick="PB.admin.switchSubTab('teams')">
+          <div class="sc-kpi-lbl">Đội chính thức</div>
+          <div class="sc-kpi-val">${d.teams.length} <span class="muted" style="font-size:0.75rem;">/${d.paymentConfig.maxSlots || 32}</span></div>
+        </div>
+        <div class="sc-kpi-card ${pendingRegs ? "has-alert" : ""}" onclick="PB.admin.switchSubTab('pro')">
+          <div class="sc-kpi-lbl">Đơn chờ duyệt</div>
+          <div class="sc-kpi-val ${pendingRegs ? "accent-live" : ""}">${pendingRegs}</div>
+        </div>
+        <div class="sc-kpi-card" onclick="PB.admin.switchSubTab('pro')">
+          <div class="sc-kpi-lbl">Lệ phí đã duyệt</div>
+          <div class="sc-kpi-val accent-ok">${estRevenue.toLocaleString("vi-VN")}đ</div>
+        </div>
+        <div class="sc-kpi-card" onclick="PB.admin.switchSubTab('schedule')">
+          <div class="sc-kpi-lbl">Tiến độ trận</div>
+          <div class="sc-kpi-val">${doneMatches}/${d.matches.length}</div>
+        </div>
+      </div>
+    `;
+  },
+
+  setRegFilter(f) {
+    this.regFilter = f;
+    this.renderAdminProSub();
+  },
+
   renderAdminProSub() {
     const el = document.getElementById("admin-sub-pro");
     if (!el || !PB.state.data) return;
@@ -434,14 +561,96 @@ PB.pro = {
     const cfg = PB.state.data.paymentConfig;
     const regs = PB.state.data.registrations;
     const pendingRegs = regs.filter((r) => r.status === "pending");
+    const filteredRegs = regs.filter((r) => this.regFilter === "all" || r.status === this.regFilter);
     const numCourts = Number(PB.state.data.settings.numCourts) || 4;
 
     el.innerHTML = `
-      <!-- 1. ĐĂNG ẢNH & THÔNG TIN GIẢI -->
+      <!-- 1. QUẢN LÝ ĐƠN ĐĂNG KÝ (SPORTCONNECT STYLE) -->
       <div class="card">
-        <h3>1. Đăng Banner, Thông tin & Ảnh giải đấu</h3>
+        <div class="section-header">
+          <h3>Quản lý Đơn đăng ký (${regs.length})</h3>
+          <div class="sc-filter-pills">
+            <button class="sc-fpill ${this.regFilter === "all" ? "active" : ""}" onclick="PB.pro.setRegFilter('all')">Tất cả (${regs.length})</button>
+            <button class="sc-fpill ${this.regFilter === "pending" ? "active" : ""}" onclick="PB.pro.setRegFilter('pending')">Chờ duyệt (${pendingRegs.length})</button>
+            <button class="sc-fpill ${this.regFilter === "approved" ? "active" : ""}" onclick="PB.pro.setRegFilter('approved')">Đã duyệt</button>
+          </div>
+        </div>
+
+        ${filteredRegs.length ? `
+          <div class="match-list">
+            ${filteredRegs.map((r) => {
+              const initials = (r.name || "VĐ").trim().slice(0, 2).toUpperCase();
+              return `
+                <div class="sc-reg-item">
+                  <div class="sc-reg-left">
+                    <div class="sc-reg-avatar">${PB.app.escape(initials)}</div>
+                    <div style="min-width:0;">
+                      <div class="match-meta">
+                        ${r.status === "approved" ? '<span class="badge badge-done">Đã duyệt</span>' : '<span class="badge badge-serieA">Chờ duyệt</span>'}
+                        <strong>${PB.app.escape(r.name)}</strong>
+                        ${r.rating ? `<span class="badge-rating">${PB.app.escape(r.rating)}</span>` : ""}
+                      </div>
+                      <div class="muted" style="font-size:0.78rem;margin-top:2px;">
+                        📞 ${PB.app.escape(r.phone)} • ${PB.app.escape(r.gender)} • CLB: ${PB.app.escape(r.club || "-")}
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    ${r.status !== "approved" ? `<button class="btn btn-sm btn-success" onclick="PB.pro.approveRegistration('${r.id}')">Duyệt</button>` : ""}
+                    <button class="btn btn-sm btn-secondary" style="color:#0068ff;border-color:#93c5fd;" onclick="PB.pro.openZalo('${r.id}')">Nhắn Zalo</button>
+                    <button class="btn btn-sm btn-danger" onclick="PB.pro.deleteRegistration('${r.id}')">Xóa</button>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        ` : '<p class="muted text-center" style="margin:8px 0;">Không có đơn đăng ký nào trong mục này.</p>'}
+      </div>
+
+      <!-- 2. CẤU HÌNH CỔNG ĐĂNG KÝ & VIETQR -->
+      <div class="card">
+        <h3>Cấu hình Cổng đăng ký & VietQR</h3>
+        <div class="form-grid" style="margin-bottom:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Trạng thái cổng đăng ký</label>
+            <select id="payEnabled" class="input">
+              <option value="true" ${cfg.enabled ? "selected" : ""}>Đang mở đăng ký</option>
+              <option value="false" ${!cfg.enabled ? "selected" : ""}>Đóng cổng đăng ký</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Giới hạn số đội (Max Slots)</label>
+            <input type="number" id="payMaxSlots" class="input" value="${Number(cfg.maxSlots || 32)}" min="2" max="256" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Lệ phí (VNĐ)</label>
+            <input type="number" id="payFee" class="input" value="${Number(cfg.fee || 0)}" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Mã Ngân hàng (VietQR)</label>
+            <input type="text" id="payBankId" class="input" value="${PB.app.escape(cfg.bankId)}" placeholder="MB, VCB, BIDV, TCB..." />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Số tài khoản nhận lệ phí</label>
+            <input type="text" id="payAccNo" class="input" value="${PB.app.escape(cfg.accountNo)}" placeholder="Nhập STK..." />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Tên chủ tài khoản</label>
+            <input type="text" id="payAccName" class="input" value="${PB.app.escape(cfg.accountName)}" placeholder="NGUYEN VAN A" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Tiền tố nội dung CK</label>
+            <input type="text" id="payPrefix" class="input" value="${PB.app.escape(cfg.prefix)}" placeholder="PB2026" />
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="PB.pro.savePaymentConfig()">Lưu cấu hình Cổng ĐK & VietQR</button>
+      </div>
+
+      <!-- 3. ĐĂNG BANNER, THÔNG TIN & ẢNH GIẢI -->
+      <div class="card">
+        <h3>Đăng Banner, Thông tin & Ảnh giải đấu</h3>
         <div class="form-group">
-          <label>Ảnh Banner đầu trang (tải từ máy hoặc dán link)</label>
+          <label>Ảnh Banner đầu trang (tự động nén nhẹ)</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <input type="file" accept="image/*" class="input-sm" style="flex:1;" onchange="PB.pro.onUploadBanner(this)" />
             ${info.banner ? `<button class="btn btn-sm btn-danger" onclick="PB.pro.removeBanner()">Xóa Banner</button>` : ""}
@@ -449,7 +658,7 @@ PB.pro = {
           ${info.banner ? `<img src="${PB.app.escape(info.banner)}" style="margin-top:8px;max-height:140px;border-radius:10px;max-width:100%;object-fit:cover;" />` : ""}
         </div>
         <div class="form-group">
-          <label>Dòng thông tin ngắn (Thời gian • Địa điểm sân)</label>
+          <label>Thời gian • Địa điểm sân</label>
           <input type="text" id="proSubtitle" class="input" value="${PB.app.escape(info.subtitle)}" placeholder="VD: 07:30 Chủ nhật 22/11/2026 • Cụm sân Pickleball Cao Bằng" />
         </div>
         <div class="form-group">
@@ -479,86 +688,18 @@ PB.pro = {
         </div>
       </div>
 
-      <!-- 2. CỔNG ĐĂNG KÝ & VIETQR -->
+      <!-- 4. OBS LIVESTREAM & CHỐT ĐIỂM TRÌNH -->
       <div class="card">
-        <div class="section-header">
-          <h3>2. Cổng VĐV tự đăng ký & VietQR</h3>
-          <span class="badge badge-live">${pendingRegs.length} đơn chờ duyệt</span>
-        </div>
-        <div class="form-grid" style="margin-bottom:10px;">
-          <div class="form-group" style="margin-bottom:0;">
-            <label>Trạng thái cổng đăng ký</label>
-            <select id="payEnabled" class="input">
-              <option value="true" ${cfg.enabled ? "selected" : ""}>Đang mở đăng ký</option>
-              <option value="false" ${!cfg.enabled ? "selected" : ""}>Đóng cổng đăng ký</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label>Mã Ngân hàng (VietQR)</label>
-            <input type="text" id="payBankId" class="input" value="${PB.app.escape(cfg.bankId)}" placeholder="MB, VCB, BIDV, TCB, ACB..." />
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label>Số tài khoản nhận lệ phí</label>
-            <input type="text" id="payAccNo" class="input" value="${PB.app.escape(cfg.accountNo)}" placeholder="Nhập STK..." />
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label>Tên chủ tài khoản</label>
-            <input type="text" id="payAccName" class="input" value="${PB.app.escape(cfg.accountName)}" placeholder="NGUYEN VAN A" />
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label>Lệ phí (VNĐ)</label>
-            <input type="number" id="payFee" class="input" value="${Number(cfg.fee || 0)}" />
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label>Tiền tố nội dung CK</label>
-            <input type="text" id="payPrefix" class="input" value="${PB.app.escape(cfg.prefix)}" placeholder="PB2026" />
-          </div>
-        </div>
-        <button class="btn btn-primary" onclick="PB.pro.savePaymentConfig()">Lưu cấu hình VietQR</button>
-
-        ${regs.length ? `
-          <div class="match-list mt-12">
-            ${regs.map((r) => `
-              <div class="match-item">
-                <div>
-                  <div class="match-meta">
-                    ${r.status === "approved" ? '<span class="badge badge-done">Đã duyệt</span>' : '<span class="badge badge-serieA">Chờ duyệt</span>'}
-                    <strong>${PB.app.escape(r.name)}</strong>
-                    <span>• ${PB.app.escape(r.phone)}</span>
-                  </div>
-                  <div class="muted" style="font-size:0.78rem;margin-top:3px;">
-                    CLB: ${PB.app.escape(r.club || "-")} • ${PB.app.escape(r.gender)} • Trình: ${PB.app.escape(r.rating || "-")}
-                  </div>
-                </div>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  ${r.status !== "approved" ? `<button class="btn btn-sm btn-success" onclick="PB.pro.approveRegistration('${r.id}')">Duyệt</button>` : ""}
-                  <button class="btn btn-sm btn-secondary" style="color:#0068ff;border-color:#93c5fd;" onclick="PB.pro.openZalo('${r.id}')">Nhắn Zalo</button>
-                  <button class="btn btn-sm btn-danger" onclick="PB.pro.deleteRegistration('${r.id}')">Xóa</button>
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        ` : '<p class="muted mt-12">Chưa có đơn đăng ký trực tuyến nào.</p>'}
-      </div>
-
-      <!-- 3. OBS LIVESTREAM OVERLAY -->
-      <div class="card">
-        <h3>3. Khung tỷ số Livestream (OBS / PRISM Live)</h3>
-        <p class="muted" style="margin-top:0;">Sao chép đường link nền trong suốt dưới đây dán vào nguồn Web (Browser Source) trên OBS hoặc PRISM Live:</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <h3>Livestream OBS & Điểm trình CLB</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
           ${Array.from({ length: numCourts }, (_, i) => i + 1).map((c) => `
-            <button class="btn btn-sm btn-secondary" onclick="PB.pro.copyObsLink(${c})">Chép link OBS Sân ${c}</button>
+            <button class="btn btn-sm btn-secondary" onclick="PB.pro.copyObsLink(${c})">Link OBS Sân ${c}</button>
           `).join("")}
         </div>
-      </div>
-
-      <!-- 4. CHỐT ĐIỂM TRÌNH CLB -->
-      <div class="card">
-        <div class="section-header">
-          <h3>4. Điểm trình CLB tích lũy (${PB.state.data.clubRanking.length} VĐV)</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border);">
+          <span class="muted">BXH Trình CLB hiện có <strong>${PB.state.data.clubRanking.length}</strong> VĐV</span>
           <button class="btn btn-sm btn-warning" onclick="PB.pro.applyTournamentRatings()">Chốt điểm trình giải này (Elo)</button>
         </div>
-        <p class="muted" style="margin:0;">Sau khi các trận kết thúc, bấm nút trên để tự động cộng/trừ điểm trình vào <strong>BXH Trình CLB</strong> (mỗi trận chỉ tính 1 lần, không bị trùng).</p>
       </div>
     `;
   },
@@ -613,6 +754,7 @@ PB.pro = {
     this.ensureData();
     PB.state.data.paymentConfig = {
       enabled: document.getElementById("payEnabled")?.value === "true",
+      maxSlots: Number(document.getElementById("payMaxSlots")?.value) || 32,
       bankId: (document.getElementById("payBankId")?.value || "MB").trim().toUpperCase(),
       accountNo: (document.getElementById("payAccNo")?.value || "").trim(),
       accountName: (document.getElementById("payAccName")?.value || "").trim().toUpperCase(),
@@ -620,6 +762,6 @@ PB.pro = {
       prefix: (document.getElementById("payPrefix")?.value || "PB2026").trim()
     };
     PB.state.save();
-    PB.app.toast("Đã lưu cấu hình VietQR & Cổng đăng ký!");
+    PB.app.toast("Đã lưu cấu hình Cổng đăng ký & VietQR!");
   }
 };

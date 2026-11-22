@@ -314,6 +314,7 @@ PB.pro = {
     const maxSlots = Number(cfg.maxSlots) || 32;
     const remain = Math.max(0, maxSlots - d.teams.length);
 
+    const defaultCat = d.settings.category === "team" ? "Đồng đội" : "Đánh Đôi";
     PB.app.openInfoModal(
       "Đăng ký thi đấu",
       `
@@ -326,18 +327,42 @@ PB.pro = {
         </div>
 
         <div class="form-group">
-          <label>Nội dung đăng ký</label>
-          <input type="hidden" id="regGender" value="Nam Nữ" />
+          <label>Nội dung thi đấu *</label>
+          <input type="hidden" id="regCategory" value="${defaultCat}" />
           <div class="sc-cat-grid" id="regCatGrid">
-            ${["Nam Nữ", "Nam", "Nữ", "Đồng đội"].map((c, i) => `
-              <button type="button" class="sc-cat-pill ${i === 0 ? "active" : ""}" onclick="PB.pro.selectRegCat(this, '${c}')">${c}</button>
+            ${["Đánh Đôi", "Đồng đội"].map((c) => `
+              <button type="button" class="sc-cat-pill ${c === defaultCat ? "active" : ""}" onclick="PB.pro.selectRegPill('regCategory', 'regCatGrid', this, '${c}')">${c}</button>
             `).join("")}
           </div>
         </div>
 
         <div class="form-group">
-          <label>Tên VĐV / Cặp đấu *</label>
-          <input type="text" id="regName" class="input" placeholder="VD: Hùng / Dương" />
+          <label>Giới tính *</label>
+          <input type="hidden" id="regGender" value="Nam Nữ" />
+          <div class="sc-cat-grid" id="regGenderGrid" style="grid-template-columns:repeat(3,1fr);">
+            ${["Nam", "Nữ", "Nam Nữ"].map((g) => `
+              <button type="button" class="sc-cat-pill ${g === "Nam Nữ" ? "active" : ""}" onclick="PB.pro.selectRegPill('regGender', 'regGenderGrid', this, '${g}')">${g}</button>
+            `).join("")}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Trình (Rating) *</label>
+          <select id="regRating" class="input">
+            <option value="2.5">2.5 (Newbie / Cơ bản)</option>
+            <option value="2.8">2.8 (Khá cơ bản)</option>
+            <option value="3.0" selected>3.0 (Trung bình)</option>
+            <option value="3.2">3.2 (Trung bình khá)</option>
+            <option value="3.5">3.5 (Khá)</option>
+            <option value="3.8">3.8 (Khá giỏi)</option>
+            <option value="4.0">4.0 (Giỏi)</option>
+            <option value="4.5+">4.5+ (Chuyên nghiệp / Open)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Tên VĐV / Cặp đấu / Đội *</label>
+          <input type="text" id="regName" class="input" placeholder="VD: Hùng / Dương hoặc CLB Bính Dần" />
         </div>
         <div class="form-grid" style="gap:8px;">
           <div class="form-group">
@@ -349,19 +374,16 @@ PB.pro = {
             <input type="text" id="regClub" class="input" placeholder="VD: CLB Bính Dần" />
           </div>
         </div>
-        <div class="form-group">
-          <label>Trình dự kiến (Rating)</label>
-          <input type="text" id="regRating" class="input" placeholder="VD: 3.0" />
-        </div>
 
         <button class="btn ios27-btn-primary mt-12" onclick="PB.pro.submitRegistration()">Xác nhận đăng ký & Lấy mã VietQR</button>
       `
     );
   },
 
-  selectRegCat(btn, val) {
-    document.getElementById("regGender").value = val;
-    document.querySelectorAll("#regCatGrid .sc-cat-pill").forEach((b) => b.classList.remove("active"));
+  selectRegPill(inputId, gridId, btn, val) {
+    const inp = document.getElementById(inputId);
+    if (inp) inp.value = val;
+    document.querySelectorAll(`#${gridId} .sc-cat-pill`).forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
   },
 
@@ -370,13 +392,14 @@ PB.pro = {
     const name = (document.getElementById("regName")?.value || "").trim();
     const phone = (document.getElementById("regPhone")?.value || "").trim();
     const club = (document.getElementById("regClub")?.value || "").trim();
+    const category = (document.getElementById("regCategory")?.value || "Đánh Đôi").trim();
     const gender = (document.getElementById("regGender")?.value || "Nam Nữ").trim();
-    const rating = (document.getElementById("regRating")?.value || "").trim();
+    const rating = (document.getElementById("regRating")?.value || "3.0").trim();
     if (!name || !phone) return PB.ui.alert("Vui lòng nhập đầy đủ Tên và Số điện thoại.");
 
     const reg = {
       id: "REG_" + Date.now(),
-      name, phone, club, gender, rating,
+      name, phone, club, category, gender, rating,
       status: "pending",
       createdAt: new Date().toLocaleString("vi-VN")
     };
@@ -721,7 +744,7 @@ PB.pro = {
                         ${r.rating ? `<span class="badge-rating">${PB.app.escape(r.rating)}</span>` : ""}
                       </div>
                       <div class="muted" style="font-size:0.78rem;margin-top:2px;">
-                        📞 ${PB.app.escape(r.phone)} • ${PB.app.escape(r.gender)} • CLB: ${PB.app.escape(r.club || "-")}
+                        📞 ${PB.app.escape(r.phone)} • ${PB.app.escape(r.category || "Đánh Đôi")} (${PB.app.escape(r.gender)}) • CLB: ${PB.app.escape(r.club || "-")}
                       </div>
                     </div>
                   </div>

@@ -1658,3 +1658,46 @@ body.ref-scoring-mode .ref-tools-grid .btn {
   padding: 1px 6px;
   border-radius: 6px;
 }
+/* v32: Admin visual group boxes */
+.admin-groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.admin-group-box {
+  background: var(--surface-sub);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 10px;
+}
+.admin-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  color: var(--primary);
+}
+.admin-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.admin-group-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--surface);
+  padding: 6px 8px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  font-size: 0.84rem;
+}
+.admin-group-team {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}

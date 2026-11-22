@@ -6,7 +6,7 @@ window.PB = window.PB || {};
 
 
 PB.ui = {
-  _open({ title, message, type = "confirm", defaultValue = "", okText = "Xác nhận", cancelText = "Hủy", danger = false }) {
+  _open({ title, message, type = "confirm", defaultValue = "", okText = "Xác nhận", cancelText = "Hủy", danger = false, mandatory = false }) {
     return new Promise((resolve) => {
       const modal = document.getElementById("iosDialogModal");
       const titleEl = document.getElementById("iosDialogTitle");
@@ -22,7 +22,7 @@ PB.ui = {
       okBtn.textContent = okText;
       okBtn.style.background = danger ? "linear-gradient(135deg,#ef4444,#dc2626)" : "";
       cancelBtn.textContent = cancelText;
-      cancelBtn.classList.toggle("hidden", type === "alert");
+      cancelBtn.classList.toggle("hidden", type === "alert" || mandatory);
       inputWrap.classList.toggle("hidden", type !== "prompt");
       inputEl.value = defaultValue || "";
 
@@ -37,7 +37,7 @@ PB.ui = {
 
       okBtn.onclick = () => cleanup(type === "prompt" ? inputEl.value : true);
       cancelBtn.onclick = () => cleanup(type === "prompt" ? null : false);
-      backdrop.onclick = () => cleanup(type === "prompt" ? null : false);
+      backdrop.onclick = mandatory ? null : () => cleanup(type === "prompt" ? null : false);
       inputEl.onkeydown = (e) => { if (e.key === "Enter") okBtn.click(); };
 
       modal.classList.remove("hidden");
@@ -49,6 +49,9 @@ PB.ui = {
   },
   confirm(message, title = "Xác nhận", danger = false) {
     return this._open({ title, message, type: "confirm", danger });
+  },
+  forceConfirm(message, title = "Xác nhận", okText = "Xác nhận đổi sân") {
+    return this._open({ title, message, type: "alert", okText, mandatory: true });
   },
   prompt(message, defaultValue = "", title = "Nhập thông tin") {
     return this._open({ title, message, type: "prompt", defaultValue });

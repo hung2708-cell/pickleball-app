@@ -1033,7 +1033,8 @@ PB.referee = {
     const res = PB.rules.addTeamSubPoint(tie, this.activeSubIdx, side);
     PB.state.save();
     if (res.needSwitchAlert) {
-      if (await PB.ui.confirm("Đã chạm điểm 8. Xác nhận đổi bên sân ngay?", "Đổi bên sân")) {
+      await PB.ui.forceConfirm("Đã chạm điểm 8. Hai đội bắt buộc đổi bên sân!", "Đổi bên sân", "Xác nhận đổi sân");
+      {
         const freshTie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
         const freshSm = freshTie?.subMatches?.[this.activeSubIdx];
         if (freshSm) {
@@ -1152,7 +1153,8 @@ PB.referee = {
     PB.state.save();
     if (res.rotated) PB.app.toast("Đủ 4 điểm — Đổi cặp VĐV tiếp theo!");
     if (res.needSwitchAlert) {
-      if (await PB.ui.confirm("Đã chạm điểm 11. Xác nhận đổi bên sân ngay?", "Đổi bên sân")) {
+      await PB.ui.forceConfirm("Đã chạm điểm 11. Hai đội bắt buộc đổi bên sân!", "Đổi bên sân", "Xác nhận đổi sân");
+      {
         const freshTie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
         const freshDb = freshTie?.dreambreaker;
         if (freshDb) {
@@ -1276,7 +1278,8 @@ PB.referee = {
     if (res.needSwitchAlert) {
       const target = Number(PB.state.data.settings.targetPoints) || 11;
       const switchPt = Number(PB.state.data.settings.switchPoint) || Math.ceil(target / 2);
-      if (await PB.ui.confirm(`Đã chạm điểm ${switchPt}. Xác nhận đổi bên sân ngay?`, "Đổi bên sân")) {
+      await PB.ui.forceConfirm(`Đã chạm điểm ${switchPt}. Hai đội bắt buộc đổi bên sân!`, "Đổi bên sân", "Xác nhận đổi sân");
+      {
         const freshM = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
         if (freshM) {
           freshM.swapped = !freshM.swapped;

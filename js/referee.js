@@ -1033,11 +1033,14 @@ PB.referee = {
     const res = PB.rules.addTeamSubPoint(tie, this.activeSubIdx, side);
     PB.state.save();
     if (res.needSwitchAlert) {
-      const sm = tie?.subMatches?.[this.activeSubIdx];
-      if (sm && await PB.ui.confirm("Đã chạm điểm 8. Xác nhận đổi bên sân ngay?", "Đổi bên sân")) {
-        sm.swapped = !sm.swapped;
-        PB.state.save();
-        PB.app.toast("Đã đổi bên sân!");
+      if (await PB.ui.confirm("Đã chạm điểm 8. Xác nhận đổi bên sân ngay?", "Đổi bên sân")) {
+        const freshTie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+        const freshSm = freshTie?.subMatches?.[this.activeSubIdx];
+        if (freshSm) {
+          freshSm.swapped = !freshSm.swapped;
+          PB.state.save();
+          PB.app.toast("Đã đổi bên sân!");
+        }
       }
     }
   },
@@ -1149,11 +1152,14 @@ PB.referee = {
     PB.state.save();
     if (res.rotated) PB.app.toast("Đủ 4 điểm — Đổi cặp VĐV tiếp theo!");
     if (res.needSwitchAlert) {
-      const db = tie?.dreambreaker;
-      if (db && await PB.ui.confirm("Đã chạm điểm 11. Xác nhận đổi bên sân ngay?", "Đổi bên sân")) {
-        db.swapped = !db.swapped;
-        PB.state.save();
-        PB.app.toast("Đã đổi bên sân!");
+      if (await PB.ui.confirm("Đã chạm điểm 11. Xác nhận đổi bên sân ngay?", "Đổi bên sân")) {
+        const freshTie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+        const freshDb = freshTie?.dreambreaker;
+        if (freshDb) {
+          freshDb.swapped = !freshDb.swapped;
+          PB.state.save();
+          PB.app.toast("Đã đổi bên sân!");
+        }
       }
     }
   },
@@ -1271,9 +1277,12 @@ PB.referee = {
       const target = Number(PB.state.data.settings.targetPoints) || 11;
       const switchPt = Number(PB.state.data.settings.switchPoint) || Math.ceil(target / 2);
       if (await PB.ui.confirm(`Đã chạm điểm ${switchPt}. Xác nhận đổi bên sân ngay?`, "Đổi bên sân")) {
-        m.swapped = !m.swapped;
-        PB.state.save();
-        PB.app.toast("Đã đổi bên sân!");
+        const freshM = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
+        if (freshM) {
+          freshM.swapped = !freshM.swapped;
+          PB.state.save();
+          PB.app.toast("Đã đổi bên sân!");
+        }
       }
     }
   },

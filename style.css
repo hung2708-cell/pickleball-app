@@ -1842,3 +1842,299 @@ body.obs-mode > *:not(#obsOverlay) {
   border-radius: 6px;
 }
 .obs-wait { padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600; font-size: 0.88rem; }
+/* =========================================================
+   v36: SPORTCONNECT REGISTRATION HERO & ADMIN DASHBOARD UI
+   ========================================================= */
+.sc-hero-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-md);
+}
+.sc-hero-cover {
+  position: relative;
+  min-height: 145px;
+  background: linear-gradient(135deg, #111827 0%, #7c2d12 60%, #ea580c 100%);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.sc-hero-cover.has-img {
+  min-height: 195px;
+}
+.sc-hero-overlay {
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.88) 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sc-hero-top-badges {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sc-status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.sc-status-pill.open { background: #10b981; color: #fff; box-shadow: 0 0 12px rgba(16, 185, 129, 0.5); }
+.sc-status-pill.closed { background: rgba(255,255,255,0.2); color: #e5e7eb; }
+.sc-fee-pill {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(253, 224, 71, 0.45);
+  color: #fde047;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+.sc-hero-title-block h2 {
+  margin: 0;
+  font-size: clamp(1.08rem, 3.6vw, 1.38rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.sc-hero-sub {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+.sc-hero-body {
+  padding: 14px 16px;
+}
+.sc-reg-progress-wrap {
+  margin-bottom: 12px;
+}
+.sc-reg-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  margin-bottom: 5px;
+  color: var(--text-2);
+}
+.sc-progress-track {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.sc-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f97316, #ea580c);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.sc-hero-cta-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.sc-btn-register {
+  flex: 1;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  font-weight: 800;
+  padding: 11px 16px;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(234, 88, 12, 0.28);
+}
+.sc-btn-qr {
+  padding: 11px 14px;
+  border-radius: 12px;
+}
+.sc-announcement-box {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-sub);
+  border: 1px solid var(--border);
+}
+.sc-ann-title {
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+.sc-ann-text {
+  font-size: 0.84rem;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+/* Registration Modal SportConnect elements */
+.sc-reg-modal-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--primary-soft);
+  border: 1px solid #fed7aa;
+  margin-bottom: 12px;
+}
+.sc-reg-fee-tag {
+  background: var(--primary);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.sc-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.sc-cat-pill {
+  padding: 9px 10px;
+  border-radius: 11px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font-weight: 700;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+.sc-cat-pill.active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.sc-bank-ticket {
+  margin-top: 10px;
+  background: var(--surface-sub);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.82rem;
+}
+.sc-bank-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.sc-bank-row:last-child { border-bottom: none; }
+
+/* Admin Dashboard Header (SportConnect Style) */
+.sc-admin-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: linear-gradient(135deg, #111827, #1f2937);
+  color: #fff;
+  padding: 14px 16px;
+  border-radius: 18px;
+  margin-bottom: 12px;
+}
+.sc-admin-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.sc-admin-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.86rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sc-admin-title { font-weight: 800; font-size: 0.96rem; }
+.sc-admin-sub { font-size: 0.76rem; color: #9ca3af; margin-top: 2px; }
+.sc-admin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.sc-kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+.sc-kpi-card.has-alert {
+  border-color: #fca5a5;
+  background: var(--danger-soft);
+}
+.sc-kpi-lbl { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+.sc-kpi-val { font-size: 1.15rem; font-weight: 900; margin-top: 2px; color: var(--text); }
+.sc-filter-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+.sc-fpill {
+  border: 1px solid var(--border);
+  background: var(--surface-sub);
+  color: var(--text-2);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sc-fpill.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.sc-reg-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sc-reg-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.sc-reg-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid #fdba74;
+  font-weight: 800;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .sc-admin-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}

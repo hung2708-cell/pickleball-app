@@ -157,6 +157,28 @@ PB.pro = {
           </div>
         ` : ""}
       </div>
+      ${!(d.matches && d.matches.length) ? `
+        <div class="card" style="margin-top:12px;">
+          <div class="section-header" style="margin-bottom:8px;">
+            <h3>Thông tin giải đấu</h3>
+            <span class="badge badge-serieA">${d.settings.category === "doubles" ? "Đánh Đôi" : "Đồng đội"}</span>
+          </div>
+          <div class="sc-bank-ticket" style="margin-top:0;">
+            <div class="sc-bank-row"><span>Thể thức tính điểm</span><strong>${d.settings.scoringMode === "sideout" ? "Side-out" : "Rally"} • ${d.settings.targetPoints}đ (BO${d.settings.bestOf})</strong></div>
+            <div class="sc-bank-row"><span>Số sân thi đấu</span><strong>${d.settings.numCourts || 4} sân</strong></div>
+            <div class="sc-bank-row"><span>Số đội đã đăng ký</span><strong>${curTeams} / ${maxSlots} đội</strong></div>
+            <div class="sc-bank-row"><span>Lệ phí tham dự</span><strong style="color:var(--primary);">${feeTxt}</strong></div>
+          </div>
+          ${d.teams.length ? `
+            <div style="margin-top:12px;">
+              <div class="muted" style="font-size:0.78rem;font-weight:700;margin-bottom:6px;">DANH SÁCH ĐỘI ĐÃ ĐƯỢC DUYỆT (${d.teams.length}):</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                ${d.teams.map((t, idx) => `<span class="quota-chip">${idx + 1}. ${PB.app.escape(t.name)}</span>`).join("")}
+              </div>
+            </div>
+          ` : ""}
+        </div>
+      ` : ""}
     `;
   },
 

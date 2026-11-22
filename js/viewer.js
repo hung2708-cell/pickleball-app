@@ -135,6 +135,11 @@ PB.viewer = {
     const data = PB.state.data;
     if (!data) return;
 
+    const liveArea = document.getElementById("liveMatchArea");
+    const hasMatches = Array.isArray(data.matches) && data.matches.length > 0;
+    if (liveArea) liveArea.classList.toggle("hidden", !hasMatches);
+    if (!hasMatches) return;
+
     // 1. Tra cứu tên VĐV
     const q = (document.getElementById("playerSearchInput")?.value || "").trim().toLowerCase();
     const searchBox = document.getElementById("playerSearchResults");

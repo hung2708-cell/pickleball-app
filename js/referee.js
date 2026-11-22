@@ -1028,20 +1028,17 @@ PB.referee = {
     PB.app.toast(`Đã thay VĐV (Y tế) cho ${st.teamName}`);
   },
 
-  teamSubPoint(side) {
+  async teamSubPoint(side) {
     const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     const res = PB.rules.addTeamSubPoint(tie, this.activeSubIdx, side);
     PB.state.save();
-    if (res.needSwitchAlert) PB.app.toast("Chạm điểm 8 — Đổi sân!");
-    if (res.event === "sub_point_reached") {
-      const sm = tie.subMatches[this.activeSubIdx];
-      setTimeout(async () => {
-        if (await PB.ui.confirm(`Chốt kết thúc ${sm.label} với tỷ số ${sm.scoreA} - ${sm.scoreB}?`, "Xác nhận kết thúc")) {
-          PB.rules.confirmFinishTeamSub(tie, this.activeSubIdx);
-          PB.state.save();
-          this._advanceAfterTeamSub(tie);
-        }
-      }, 80);
+    if (res.needSwitchAlert) {
+      const sm = tie?.subMatches?.[this.activeSubIdx];
+      if (sm && await PB.ui.confirm("Đã chạm điểm 8. Xác nhận đổi bên sân ngay?", "Đổi bên sân")) {
+        sm.swapped = !sm.swapped;
+        PB.state.save();
+        PB.app.toast("Đã đổi bên sân!");
+      }
     }
   },
 
@@ -1146,21 +1143,18 @@ PB.referee = {
     `;
   },
 
-  dbPoint(side) {
+  async dbPoint(side) {
     const tie = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     const res = PB.rules.addDreambreakerPoint(tie, side);
     PB.state.save();
     if (res.rotated) PB.app.toast("Đủ 4 điểm — Đổi cặp VĐV tiếp theo!");
-    if (res.needSwitchAlert) PB.app.toast("Chạm điểm 11 — Đổi sân!");
-    if (res.event === "db_point_reached") {
-      const db = tie.dreambreaker;
-      setTimeout(async () => {
-        if (await PB.ui.confirm(`Chốt kết thúc Trận Đơn (${db.scoreA} - ${db.scoreB})?`, "Kết thúc Trận Đơn")) {
-          PB.rules.confirmFinishDreambreaker(tie);
-          PB.state.save();
-          this.exitMatch();
-        }
-      }, 80);
+    if (res.needSwitchAlert) {
+      const db = tie?.dreambreaker;
+      if (db && await PB.ui.confirm("Đã chạm điểm 11. Xác nhận đổi bên sân ngay?", "Đổi bên sân")) {
+        db.swapped = !db.swapped;
+        PB.state.save();
+        PB.app.toast("Đã đổi bên sân!");
+      }
     }
   },
 
@@ -1268,21 +1262,19 @@ PB.referee = {
     `;
   },
 
-  point(side) {
+  async point(side) {
     const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId);
     if (!m) return;
     const res = PB.rules.addPoint(m, side, PB.state.data.settings);
     PB.state.save();
-    if (res.needSwitchAlert) PB.app.toast("Đã chạm điểm đổi sân!");
-    if (res.event === "set_point_reached") {
-      const wName = PB.state.getTeamName(res.winnerSide === "A" ? m.teamA : m.teamB);
-      setTimeout(async () => {
-        if (await PB.ui.confirm(`${wName} đủ điểm thắng Set (${m.scoreA} - ${m.scoreB}). Xác nhận chốt?`, "Kết thúc Set")) {
-          const outcome = PB.rules.confirmFinishSetOrMatch(m, PB.state.data.settings);
-          PB.state.save();
-          if (outcome === "match_finished") { PB.app.toast(`Chiến thắng: ${wName}`); this._advanceNextMatchOnCourt(m.court); }
-        }
-      }, 100);
+    if (res.needSwitchAlert) {
+      const target = Number(PB.state.data.settings.targetPoints) || 11;
+      const switchPt = Number(PB.state.data.settings.switchPoint) || Math.ceil(target / 2);
+      if (await PB.ui.confirm(`Đã chạm điểm ${switchPt}. Xác nhận đổi bên sân ngay?`, "Đổi bên sân")) {
+        m.swapped = !m.swapped;
+        PB.state.save();
+        PB.app.toast("Đã đổi bên sân!");
+      }
     }
   },
   sideOut() { const m = PB.state.data.matches.find((x) => x.id === this.activeMatchId); if (m) { PB.rules.sideOut(m, PB.state.data.settings); PB.state.save(); } },

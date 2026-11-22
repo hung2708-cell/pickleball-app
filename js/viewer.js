@@ -448,7 +448,7 @@ PB.viewer = {
       </div>
       <div class="tv-board">
         <div class="tv-team ${m.server === "A" ? "serving" : ""}">
-          <div class="tv-team-name">${m.server === "A" ? "🏓 " : ""}${PB.app.escape(PB.state.getTeamName(m.teamA))}</div>
+          <div class="tv-team-name">${m.server === "A" ? "<svg style="width:0.95em;height:0.95em;vertical-align:-0.12em;margin-right:6px;" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="3" width="16" height="19" rx="7" fill="#f97316" stroke="#fde047" stroke-width="1.8"/><rect x="12" y="22" width="4" height="7.5" rx="1.6" fill="#cbd5e1"/><circle cx="24" cy="22" r="5" fill="#fde047" stroke="#ea580c" stroke-width="1.4"/><circle cx="22.6" cy="20.8" r="0.85" fill="#ea580c"/><circle cx="25.5" cy="21" r="0.85" fill="#ea580c"/><circle cx="24" cy="23.5" r="0.85" fill="#ea580c"/></svg>" : ""}${PB.app.escape(PB.state.getTeamName(m.teamA))}</div>
           <div class="tv-score">${m.scoreA}</div>
           <div class="muted" style="font-size:1.2rem;margin-top:8px;">Sets: ${m.setsA}</div>
         </div>
@@ -457,7 +457,7 @@ PB.viewer = {
           <div style="font-size:2.6rem;color:#facc15;">${callout}</div>
         </div>
         <div class="tv-team ${m.server === "B" ? "serving" : ""}">
-          <div class="tv-team-name">${m.server === "B" ? "🏓 " : ""}${PB.app.escape(PB.state.getTeamName(m.teamB))}</div>
+          <div class="tv-team-name">${m.server === "B" ? "<svg style="width:0.95em;height:0.95em;vertical-align:-0.12em;margin-right:6px;" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="3" width="16" height="19" rx="7" fill="#f97316" stroke="#fde047" stroke-width="1.8"/><rect x="12" y="22" width="4" height="7.5" rx="1.6" fill="#cbd5e1"/><circle cx="24" cy="22" r="5" fill="#fde047" stroke="#ea580c" stroke-width="1.4"/><circle cx="22.6" cy="20.8" r="0.85" fill="#ea580c"/><circle cx="25.5" cy="21" r="0.85" fill="#ea580c"/><circle cx="24" cy="23.5" r="0.85" fill="#ea580c"/></svg>" : ""}${PB.app.escape(PB.state.getTeamName(m.teamB))}</div>
           <div class="tv-score" style="color:#fb923c;">${m.scoreB}</div>
           <div class="muted" style="font-size:1.2rem;margin-top:8px;">Sets: ${m.setsB}</div>
         </div>

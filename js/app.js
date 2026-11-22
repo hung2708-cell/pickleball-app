@@ -196,6 +196,7 @@ PB.app = {
   },
 
   init() {
+    if (PB.pro) PB.pro.checkObsMode();
     PB.ui.initGlobalIosSelects();
     this.initMobileNavSlider();
     PB.state.subscribe(() => this.renderAll());
@@ -228,6 +229,7 @@ PB.app = {
   renderAll() {
     const d = PB.state.data;
     if (!d) return;
+    if (PB.pro && PB.pro.obsCourt) { PB.pro.renderObsOverlay(); return; }
 
     // Header
     document.getElementById("headerTournamentName").textContent = d.tournamentName;

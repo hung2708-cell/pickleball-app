@@ -60,6 +60,7 @@ PB.viewer = {
   },
 
   renderAll() {
+    if (PB.pro) PB.pro.renderPublicInfo();
     this.renderStatsStrip();
     this.renderLive();
     this.renderStandings();
@@ -273,8 +274,11 @@ PB.viewer = {
     if (!silent && PB.app.saveUiState) PB.app.saveUiState({ standingView: view });
     document.getElementById("subtabGroupsBtn").classList.toggle("active", view === "groups");
     document.getElementById("subtabBracketBtn").classList.toggle("active", view === "bracket");
+    document.getElementById("subtabRankingBtn")?.classList.toggle("active", view === "ranking");
     document.getElementById("standingsGroupsView").classList.toggle("hidden", view !== "groups");
     document.getElementById("standingsBracketView").classList.toggle("hidden", view !== "bracket");
+    document.getElementById("standingsRankingView")?.classList.toggle("hidden", view !== "ranking");
+    if (view === "ranking" && PB.pro) PB.pro.renderClubRanking();
     this.renderStandings();
   },
 

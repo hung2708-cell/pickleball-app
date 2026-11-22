@@ -20,6 +20,7 @@ PB.admin = {
     this.renderTeamsSub();
     this.renderScheduleSub();
     this.renderSettingsSub();
+    if (PB.pro) PB.pro.renderAdminProSub();
   },
 
   switchSubTab(tab, silent = false) {
@@ -28,7 +29,7 @@ PB.admin = {
     document.querySelectorAll("[data-admintab]").forEach((b) => {
       b.classList.toggle("active", b.dataset.admintab === tab);
     });
-    ["teams", "schedule", "settings"].forEach((t) => {
+    ["teams", "schedule", "settings", "pro"].forEach((t) => {
       document.getElementById(`admin-sub-${t}`).classList.toggle("hidden", t !== tab);
     });
   },

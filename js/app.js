@@ -201,10 +201,8 @@ PB.app = {
     this.initMobileNavSlider();
     PB.state.subscribe(() => this.renderAll());
     PB.state.init(() => {
-      // Nếu lần đầu mở chưa có dữ liệu, tự nạp mẫu để dễ trải nghiệm ngay
-      if (!PB.state.data.teams.length && !PB.state.data.matches.length) {
-        PB.state.loadSampleData();
-      } else if (PB.auth.isReferee() && PB.bracket.ensureAutoSchedule()) {
+      // Không tự nạp lại dữ liệu mẫu khi danh sách trống (tránh tự khôi phục VĐV cũ sau khi xóa)
+      if (PB.state.data.matches.length && PB.auth.isReferee() && PB.bracket.ensureAutoSchedule()) {
         PB.state.save();
       }
       // Khôi phục đúng vị trí trước khi F5

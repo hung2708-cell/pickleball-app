@@ -402,10 +402,13 @@ PB.admin = {
   },
 
   async clearAllTeams() {
-    if (!(await PB.ui.confirm("Toàn bộ danh sách đội và lịch thi đấu hiện tại sẽ bị xóa sạch.", "Xóa toàn bộ giải", true))) return;
+    if (!(await PB.ui.confirm("Toàn bộ danh sách VĐV/đội, lịch thi đấu, đơn đăng ký và BXH trình CLB cũ sẽ bị xóa sạch.", "Xóa sạch dữ liệu VĐV cũ", true))) return;
     PB.state.data.teams = [];
     PB.state.data.matches = [];
+    PB.state.data.registrations = [];
+    PB.state.data.clubRanking = [];
     PB.state.save();
+    PB.app.toast("Đã xóa sạch toàn bộ dữ liệu VĐV cũ!");
   },
 
   async loadSample(cat = "doubles") {

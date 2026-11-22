@@ -2138,3 +2138,302 @@ body.obs-mode > *:not(#obsOverlay) {
 @media (max-width: 768px) {
   .sc-admin-kpi-grid { grid-template-columns: repeat(2, 1fr); }
 }
+/* =========================================================
+   v38: SPORTCONNECT DARK PRO — MỆNH HỎA 1986 (BÍNH DẦN)
+   - Nền Than Đá Ấm (#0c0a09 -> #161210 -> #1f1a17)
+   - Cam Hổ (#f97316) + Xanh Ngọc Mộc sinh Hỏa (#10b981) + Vàng Hổ Phách (#f59e0b)
+   ========================================================= */
+:root {
+  --bg: #0c0a09;
+  --surface: #161210;
+  --surface-sub: #1f1916;
+  --border: #2e2622;
+  --text: #fafaf9;
+  --text-2: #d6d3d1;
+  --muted: #a8a29e;
+
+  --primary: #f97316;
+  --primary-dark: #ea580c;
+  --primary-soft: rgba(249, 115, 22, 0.16);
+  --emerald: #10b981;
+  --emerald-soft: rgba(16, 185, 129, 0.16);
+  --gold: #f59e0b;
+  --gold-soft: rgba(245, 158, 11, 0.16);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.16);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.48);
+  --shadow-float: 0 14px 36px rgba(0, 0, 0, 0.65);
+}
+
+html, body {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  color-scheme: dark;
+}
+
+/* Header & Desktop Nav */
+.topbar {
+  background: linear-gradient(135deg, #0c0a09 0%, #23140d 100%) !important;
+  border-bottom: 1px solid rgba(249, 115, 22, 0.32) !important;
+}
+.main-nav {
+  background: #120f0d !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.nav-btn { color: var(--muted) !important; }
+.nav-btn:hover { background: var(--surface-sub) !important; color: var(--text) !important; }
+.nav-btn.active {
+  background: var(--primary-soft) !important;
+  color: #fb923c !important;
+}
+
+/* Cards, Inputs, Buttons */
+.card, .stat-card, .court-card, .match-item, .lock-card, .ref-console,
+.bracket-tree-section, .bt-node, .sc-hero-card, .sc-kpi-card, .sc-reg-item {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+.court-card {
+  border-top: 3px solid var(--primary) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(249, 115, 22, 0.08) !important;
+}
+.court-card-head, .court-card-actions {
+  border-color: var(--border) !important;
+}
+.court-pill, .match-score-pill, .team-sub-score {
+  background: #29221e !important;
+  color: #fafaf9 !important;
+  border: 1px solid #3f342e;
+}
+.score-row, .bt-slot, .admin-group-box, .sc-announcement-box, .sc-bank-ticket {
+  background: var(--surface-sub) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+.score-row.serving {
+  background: rgba(249, 115, 22, 0.16) !important;
+  border-color: rgba(249, 115, 22, 0.55) !important;
+}
+.admin-group-row {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+.input, .input-sm, textarea, select, .input-search, .ios27-select-btn {
+  background: #1c1714 !important;
+  border-color: #3a302a !important;
+  color: var(--text) !important;
+}
+.input::placeholder, textarea::placeholder, .input-search::placeholder {
+  color: #78716c !important;
+}
+.btn-secondary {
+  background: #1f1916 !important;
+  color: #e7e5e4 !important;
+  border: 1px solid #3a302a !important;
+}
+.btn-secondary:hover {
+  background: #2b231f !important;
+}
+
+/* Subtabs & Filter pills */
+.subtabs {
+  background: #1c1714 !important;
+  border: 1px solid var(--border);
+}
+.subtab-btn { color: var(--muted) !important; }
+.subtab-btn.active {
+  background: linear-gradient(135deg, #f97316, #ea580c) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35) !important;
+}
+.sc-fpill, .sc-cat-pill {
+  background: #1c1714 !important;
+  border-color: #3a302a !important;
+  color: var(--text-2) !important;
+}
+.sc-fpill.active, .sc-cat-pill.active {
+  background: var(--primary-soft) !important;
+  border-color: var(--primary) !important;
+  color: #fb923c !important;
+}
+
+/* Badges & Chips */
+.badge-wait { background: #29221e !important; color: #d6d3d1 !important; }
+.badge-serieA { background: rgba(245, 158, 11, 0.16) !important; color: #fbbf24 !important; border-color: rgba(245, 158, 11, 0.35) !important; }
+.badge-serieB { background: rgba(16, 185, 129, 0.14) !important; color: #34d399 !important; border-color: rgba(16, 185, 129, 0.35) !important; }
+.badge-rating {
+  background: rgba(249, 115, 22, 0.18) !important;
+  color: #fdba74 !important;
+  border-color: rgba(249, 115, 22, 0.4) !important;
+}
+.team-sub-mini-chip {
+  background: #241e1b !important;
+  color: #d6d3d1 !important;
+  border-color: #3a302a !important;
+}
+.team-sub-row.is-done, .team-sub-mini-chip.is-done {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.38) !important;
+  color: #34d399 !important;
+}
+.team-sub-row.is-live, .team-sub-mini-chip.is-live {
+  background: rgba(249, 115, 22, 0.16) !important;
+  border-color: rgba(249, 115, 22, 0.45) !important;
+}
+
+/* Tables & Bracket Tree */
+table.data-table th {
+  background: #1f1916 !important;
+  color: #a8a29e !important;
+  border-bottom-color: var(--border) !important;
+}
+table.data-table td {
+  border-bottom-color: var(--border) !important;
+}
+.bt-col-groups .bt-col-title {
+  background: rgba(16, 185, 129, 0.16) !important;
+  color: #34d399 !important;
+}
+.bt-group-node {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+.bt-seed-tag {
+  background: #29221e !important;
+  color: #d6d3d1 !important;
+}
+.bt-slot.winner {
+  background: rgba(16, 185, 129, 0.16) !important;
+  color: #34d399 !important;
+}
+.bt-slot.winner .bt-seed-tag {
+  background: rgba(16, 185, 129, 0.28) !important;
+  color: #6ee7b7 !important;
+}
+.bt-node.has-next::after {
+  background: #443831 !important;
+}
+.bt-slot.team-hl {
+  background: linear-gradient(135deg, #f97316, #d97706) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 2px #fde047 !important;
+}
+.match-item.match-item-hl {
+  background: rgba(245, 158, 11, 0.14) !important;
+  border-color: #f59e0b !important;
+}
+.team-name-hl {
+  background: rgba(249, 115, 22, 0.28) !important;
+  color: #fde047 !important;
+}
+
+/* Referee Console Dark Fire */
+body.ref-scoring-mode, body.ref-lineup-mode {
+  background: #0c0a09 !important;
+}
+.callout-banner {
+  background: linear-gradient(135deg, #1c1410, #0c0a09) !important;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}
+.ref-side {
+  background: #1c1714 !important;
+  border-color: #2e2622 !important;
+}
+.ref-side.is-serving {
+  background: rgba(249, 115, 22, 0.14) !important;
+  border-color: #f97316 !important;
+}
+.step-pill {
+  background: #1c1714 !important;
+  color: var(--muted) !important;
+}
+.quota-chip {
+  background: #1c1714 !important;
+  border-color: #3a302a !important;
+  color: #d6d3d1 !important;
+}
+.quota-chip.used-1 {
+  background: rgba(249, 115, 22, 0.18) !important;
+  border-color: rgba(249, 115, 22, 0.5) !important;
+  color: #fdba74 !important;
+}
+.quota-chip.used-2 {
+  background: rgba(16, 185, 129, 0.18) !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+  color: #6ee7b7 !important;
+}
+.switch-alert {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border-color: #f59e0b !important;
+  color: #fde047 !important;
+}
+
+/* SportConnect Hero & Admin Dashboard Dark Fire */
+.sc-progress-track { background: #29221e !important; }
+.sc-reg-modal-banner {
+  background: rgba(249, 115, 22, 0.14) !important;
+  border-color: rgba(249, 115, 22, 0.35) !important;
+}
+.sc-admin-banner {
+  background: linear-gradient(135deg, #1c130e 0%, #2b180e 100%) !important;
+  border: 1px solid rgba(249, 115, 22, 0.32);
+}
+.pro-sponsor-pill {
+  background: #1c1714 !important;
+  border-color: #3a302a !important;
+  color: var(--text) !important;
+}
+
+/* iOS 27 DARK LIQUID GLASS MODALS */
+.modal-ios27 .modal-backdrop {
+  background: rgba(0, 0, 0, 0.65) !important;
+}
+.ios27-sheet {
+  background: rgba(24, 19, 17, 0.88) !important;
+  backdrop-filter: blur(36px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(200%) !important;
+  border: 1px solid rgba(249, 115, 22, 0.25) !important;
+  color: var(--text) !important;
+  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.08) !important;
+}
+.ios27-grabber { background: rgba(255, 255, 255, 0.22) !important; }
+.ios27-close-circle {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #e7e5e4 !important;
+}
+.ios27-segment {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+.ios27-seg-btn.active {
+  background: #29221e !important;
+  color: #fb923c !important;
+}
+.ios27-pass-input {
+  background: #120f0d !important;
+  border-color: #3a302a !important;
+  color: #ffffff !important;
+}
+.ios27-btn-cancel {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #e7e5e4 !important;
+}
+.ios27-picker-item {
+  background: #1f1916 !important;
+  border-color: #332a25 !important;
+  color: var(--text) !important;
+}
+.ios27-picker-item.active {
+  background: rgba(249, 115, 22, 0.18) !important;
+  border-color: #f97316 !important;
+  color: #fb923c !important;
+}
+.ios27-timer-track { stroke: rgba(255, 255, 255, 0.12) !important; }
+.ios27-timer-clock { color: #fafaf9 !important; }
+.toss-summary-pill {
+  background: #1f1916 !important;
+  border-color: #332a25 !important;
+  color: #d6d3d1 !important;
+}

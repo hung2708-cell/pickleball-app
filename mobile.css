@@ -500,3 +500,16 @@ body.ref-lineup-mode .lineup-actions .btn {
   color: var(--muted);
   flex-shrink: 0;
 }
+/* =========================================================
+   v38: MOBILE DARK FIRE LIQUID GLASS TAB BAR
+   ========================================================= */
+.main-nav {
+  background: rgba(22, 18, 16, 0.84) !important;
+  backdrop-filter: blur(28px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+  border: 1px solid rgba(249, 115, 22, 0.25) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.08) !important;
+}
+body.ref-lineup-mode {
+  background: #0c0a09 !important;
+}

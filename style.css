@@ -1632,3 +1632,29 @@ body.ref-scoring-mode .ref-tools-grid .btn {
 .bt-group-node {
   border-color: #bae6fd;
 }
+/* v30: Highlight đội/cặp VĐV khi bấm vào để theo dõi các trận đã đánh */
+.bt-clickable {
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.bt-slot.team-hl {
+  background: linear-gradient(135deg, #fef08a, #fde047) !important;
+  color: #7c2d12 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 0 2px #ea580c;
+}
+.bt-slot.team-hl .bt-seed-tag {
+  background: #ea580c !important;
+  color: #ffffff !important;
+}
+.match-item.match-item-hl {
+  background: #fffbeb !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25) !important;
+}
+.team-name-hl {
+  background: #fef08a;
+  color: #9a3412 !important;
+  padding: 1px 6px;
+  border-radius: 6px;
+}

@@ -237,6 +237,27 @@ PB.pro = {
     PB.app.toast("Đã xóa đơn đăng ký");
   },
 
+  openZalo(regId) {
+    this.ensureData();
+    const reg = PB.state.data.registrations.find((r) => r.id === regId);
+    if (!reg || !reg.phone) return PB.ui.alert("Đơn đăng ký này chưa có số điện thoại.");
+    let phone = String(reg.phone).replace(/[^0-9+]/g, "");
+    if (phone.startsWith("+84")) phone = "0" + phone.slice(3);
+    else if (phone.startsWith("84") && phone.length >= 10) phone = "0" + phone.slice(2);
+
+    const tName = PB.state.data.tournamentName || "Giải Pickleball";
+    const link = window.location.origin + window.location.pathname;
+    const msg = reg.status === "approved"
+      ? `BTC ${tName} xác nhận đã DUYỆT đăng ký cho ${reg.name} (${reg.gender || "Thi đấu"}). Xem lịch & tỷ số trực tiếp tại: ${link}`
+      : `BTC ${tName} đã nhận đăng ký của ${reg.name}. Vui lòng hoàn tất lệ phí để BTC duyệt danh sách nhé!`;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(msg).catch(() => {});
+    }
+    PB.app.toast("Đã chép sẵn tin nhắn — Đang mở Zalo...");
+    window.open(`https://zalo.me/${encodeURIComponent(phone)}`, "_blank");
+  },
+
   // =========================================================
   // 3. KHUNG TỶ SỐ LIVESTREAM (OBS OVERLAY - NỀN TRONG SUỐT)
   // =========================================================
@@ -509,8 +530,9 @@ PB.pro = {
                     CLB: ${PB.app.escape(r.club || "-")} • ${PB.app.escape(r.gender)} • Trình: ${PB.app.escape(r.rating || "-")}
                   </div>
                 </div>
-                <div style="display:flex;gap:6px;">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
                   ${r.status !== "approved" ? `<button class="btn btn-sm btn-success" onclick="PB.pro.approveRegistration('${r.id}')">Duyệt</button>` : ""}
+                  <button class="btn btn-sm btn-secondary" style="color:#0068ff;border-color:#93c5fd;" onclick="PB.pro.openZalo('${r.id}')">Nhắn Zalo</button>
                   <button class="btn btn-sm btn-danger" onclick="PB.pro.deleteRegistration('${r.id}')">Xóa</button>
                 </div>
               </div>

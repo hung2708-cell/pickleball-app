@@ -69,6 +69,15 @@ PB.admin = {
             <label>Trình (Rating)</label>
             <input type="text" id="addTeamRating" class="input" placeholder="VD: 3.2" />
           </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Xếp vào Bảng</label>
+            <select id="addTeamGroup" class="input">
+              <option value="A">Bảng A</option>
+              <option value="B">Bảng B</option>
+              <option value="C">Bảng C</option>
+              <option value="D">Bảng D</option>
+            </select>
+          </div>
         </div>
         <button class="btn btn-primary" onclick="PB.admin.addSingleTeam()">+ Thêm vào danh sách</button>
 
@@ -88,6 +97,44 @@ PB.admin = {
           <button class="btn btn-warning" onclick="PB.admin.autoDrawGroups()">Bốc thăm chia bảng</button>
         </div>
       </div>
+
+      ${teams.length ? (() => {
+        const gMap = {};
+        teams.forEach((t) => {
+          const g = t.group || "A";
+          if (!gMap[g]) gMap[g] = [];
+          gMap[g].push(t);
+        });
+        const gKeys = Object.keys(gMap).sort();
+        return `
+          <div class="card">
+            <div class="section-header">
+              <h3>Phân chia vòng bảng (${gKeys.length} bảng)</h3>
+              <button class="btn btn-sm btn-success" onclick="PB.admin.generateGroupSchedule()">Tạo lịch vòng bảng</button>
+            </div>
+            <div class="admin-groups-grid">
+              ${gKeys.map((g) => `
+                <div class="admin-group-box">
+                  <div class="admin-group-head">
+                    <strong>Bảng ${g}</strong>
+                    <span class="badge badge-wait">${gMap[g].length} đội</span>
+                  </div>
+                  <div class="admin-group-list">
+                    ${gMap[g].map((t, idx) => `
+                      <div class="admin-group-row">
+                        <span class="admin-group-team">${idx + 1}. <strong>${PB.app.escape(t.name)}</strong></span>
+                        <select class="input-sm" style="padding:3px 6px;font-size:0.76rem;" onchange="PB.admin.changeTeamGroup('${t.id}', this.value)">
+                          ${["A", "B", "C", "D"].map((opt) => `<option value="${opt}" ${t.group === opt ? "selected" : ""}>Bảng ${opt}</option>`).join("")}
+                        </select>
+                      </div>
+                    `).join("")}
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      })() : ""}
 
       <div class="card">
         <div class="section-header">
@@ -287,14 +334,15 @@ PB.admin = {
     const club = (document.getElementById("addTeamClub")?.value || "").trim();
     const gender = (document.getElementById("addTeamGender")?.value || "").trim();
     const rating = (document.getElementById("addTeamRating")?.value || "").trim();
+    const group = (document.getElementById("addTeamGroup")?.value || "A").trim();
     if (!name) return PB.app.toast("Vui lòng nhập Tên VĐV / Cặp đấu.");
     PB.state.data.teams.push({
       id: "T" + Date.now() + "_" + Math.floor(Math.random() * 1000),
       name, club, gender, rating,
-      group: "A", seed: 0, roster: []
+      group, seed: 0, roster: []
     });
     PB.state.save();
-    PB.app.toast(`Đã thêm ${name}!`);
+    PB.app.toast(`Đã thêm ${name} vào Bảng ${group}!`);
   },
 
   addBulkTeams() {
@@ -334,9 +382,10 @@ PB.admin = {
       [teams[i], teams[j]] = [teams[j], teams[i]];
     }
     teams.forEach((t, idx) => { t.group = letters[idx % count]; });
+    teams.sort((a, b) => (a.group || "A").localeCompare(b.group || "A"));
     PB.state.data.teams = teams;
     PB.state.save();
-    PB.app.toast(`Đã bốc thăm chia đều vào ${count} bảng!`);
+    PB.app.toast(`Đã tự động chia đều vào ${count} bảng!`);
   },
 
   changeTeamGroup(id, group) {

@@ -347,17 +347,13 @@ PB.pro = {
         </div>
 
         <div class="form-group">
-          <label>Trình (Rating) *</label>
-          <select id="regRating" class="input">
-            <option value="2.5">2.5 (Newbie / Cơ bản)</option>
-            <option value="2.8">2.8 (Khá cơ bản)</option>
-            <option value="3.0" selected>3.0 (Trung bình)</option>
-            <option value="3.2">3.2 (Trung bình khá)</option>
-            <option value="3.5">3.5 (Khá)</option>
-            <option value="3.8">3.8 (Khá giỏi)</option>
-            <option value="4.0">4.0 (Giỏi)</option>
-            <option value="4.5+">4.5+ (Chuyên nghiệp / Open)</option>
-          </select>
+          <label>Trình *</label>
+          <input type="hidden" id="regRating" value="Trình B" />
+          <div class="sc-cat-grid" id="regRatingGrid" style="grid-template-columns:repeat(3,1fr);">
+            ${["Trình A", "Trình B", "Trình C"].map((rt) => `
+              <button type="button" class="sc-cat-pill ${rt === "Trình B" ? "active" : ""}" onclick="PB.pro.selectRegPill('regRating', 'regRatingGrid', this, '${rt}')">${rt}</button>
+            `).join("")}
+          </div>
         </div>
 
         <div class="form-group">
@@ -394,7 +390,7 @@ PB.pro = {
     const club = (document.getElementById("regClub")?.value || "").trim();
     const category = (document.getElementById("regCategory")?.value || "Đánh Đôi").trim();
     const gender = (document.getElementById("regGender")?.value || "Nam Nữ").trim();
-    const rating = (document.getElementById("regRating")?.value || "3.0").trim();
+    const rating = (document.getElementById("regRating")?.value || "Trình B").trim();
     if (!name || !phone) return PB.ui.alert("Vui lòng nhập đầy đủ Tên và Số điện thoại.");
 
     const reg = {

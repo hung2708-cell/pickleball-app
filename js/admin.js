@@ -59,34 +59,26 @@ PB.admin = {
             <input type="text" id="addTeamClub" class="input" placeholder="VD: CLB Bính Dần 1986" />
           </div>
           <div class="form-group" style="margin-bottom:0;">
-            <label>Giới tính</label>
+            <label>Nội dung / Giới tính</label>
             <select id="addTeamGender" class="input">
-              <option value="Nam Nữ">Nam Nữ</option>
-              <option value="Nam">Nam</option>
-              <option value="Nữ">Nữ</option>
+              <option value="Đôi Nam Nữ">Đôi Nam Nữ</option>
+              <option value="Đôi Nam">Đôi Nam</option>
+              <option value="Đôi Nữ">Đôi Nữ</option>
               <option value="Đồng đội">Đồng đội (Nam & Nữ)</option>
             </select>
           </div>
           <div class="form-group" style="margin-bottom:0;">
-            <label>Trình (Rating)</label>
+            <label>Trình</label>
             <select id="addTeamRating" class="input">
-              <option value="2.5">2.5 (Cơ bản)</option>
-              <option value="2.8">2.8 (Khá cơ bản)</option>
-              <option value="3.0" selected>3.0 (Trung bình)</option>
-              <option value="3.2">3.2 (Trung bình khá)</option>
-              <option value="3.5">3.5 (Khá)</option>
-              <option value="3.8">3.8 (Khá giỏi)</option>
-              <option value="4.0">4.0 (Giỏi)</option>
-              <option value="4.5+">4.5+ (Open)</option>
+              <option value="Trình A">Trình A</option>
+              <option value="Trình B" selected>Trình B</option>
+              <option value="Trình C">Trình C</option>
             </select>
           </div>
           <div class="form-group" style="margin-bottom:0;">
             <label>Xếp vào Bảng</label>
             <select id="addTeamGroup" class="input">
-              <option value="A">Bảng A</option>
-              <option value="B">Bảng B</option>
-              <option value="C">Bảng C</option>
-              <option value="D">Bảng D</option>
+              ${["A", "B", "C", "D", "E", "F", "G", "H"].map((g) => `<option value="${g}">Bảng ${g}</option>`).join("")}
             </select>
           </div>
         </div>
@@ -115,8 +107,10 @@ PB.admin = {
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-secondary" onclick="PB.admin.addBulkTeams()">+ Dán thêm hàng loạt</button>
           <select id="autoGroupCount" class="input-sm">
-            <option value="2">Chia đều 2 bảng (A, B)</option>
-            <option value="4">Chia đều 4 bảng (A, B, C, D)</option>
+            <option value="2">Chia đều 2 bảng (A - B)</option>
+            <option value="4">Chia đều 4 bảng (A - D)</option>
+            <option value="6">Chia đều 6 bảng (A - F)</option>
+            <option value="8">Chia đều 8 bảng (A - H)</option>
             <option value="1">Gộp 1 bảng (A)</option>
           </select>
           <button class="btn btn-warning" onclick="PB.admin.autoDrawGroups()">Bốc thăm chia bảng</button>
@@ -149,7 +143,7 @@ PB.admin = {
                       <div class="admin-group-row">
                         <span class="admin-group-team">${idx + 1}. <strong>${PB.app.escape(t.name)}</strong></span>
                         <select class="input-sm" style="padding:3px 6px;font-size:0.76rem;" onchange="PB.admin.changeTeamGroup('${t.id}', this.value)">
-                          ${["A", "B", "C", "D"].map((opt) => `<option value="${opt}" ${t.group === opt ? "selected" : ""}>Bảng ${opt}</option>`).join("")}
+                          ${["A", "B", "C", "D", "E", "F", "G", "H"].map((opt) => `<option value="${opt}" ${t.group === opt ? "selected" : ""}>Bảng ${opt}</option>`).join("")}
                         </select>
                       </div>
                     `).join("")}
@@ -189,7 +183,7 @@ PB.admin = {
                   <td>${t.rating ? `<span class="badge-rating">${PB.app.escape(t.rating)}</span>` : "-"}</td>
                   <td>
                     <select class="input-sm" onchange="PB.admin.changeTeamGroup('${t.id}', this.value)">
-                      ${["A", "B", "C", "D"].map((g) => `<option value="${g}" ${t.group === g ? "selected" : ""}>Bảng ${g}</option>`).join("")}
+                      ${["A", "B", "C", "D", "E", "F", "G", "H"].map((g) => `<option value="${g}" ${t.group === g ? "selected" : ""}>Bảng ${g}</option>`).join("")}
                     </select>
                   </td>
                   <td>
@@ -400,10 +394,10 @@ PB.admin = {
         const name = String(r[offset] || "").trim();
         if (!name) continue;
         const club = String(r[offset + 1] || "").trim();
-        const gender = String(r[offset + 2] || "Nam Nữ").trim();
-        const rating = String(r[offset + 3] || "3.0").trim();
+        const gender = String(r[offset + 2] || "Đôi Nam Nữ").trim();
+        const rating = String(r[offset + 3] || "Trình B").trim();
         const rawGroup = String(r[offset + 4] || "A").trim().toUpperCase().replace(/^BẢNG\s*/i, "");
-        const group = ["A", "B", "C", "D"].includes(rawGroup) ? rawGroup : "A";
+        const group = ["A", "B", "C", "D", "E", "F", "G", "H"].includes(rawGroup) ? rawGroup : "A";
         const rosterStr = String(r[offset + 5] || "").trim();
 
         PB.state.data.teams.push({
@@ -459,7 +453,7 @@ PB.admin = {
     const teams = [...PB.state.data.teams];
     if (teams.length < 2) return PB.app.toast("Cần ít nhất 2 đội để chia bảng.");
     const count = Number(document.getElementById("autoGroupCount").value) || 2;
-    const letters = ["A", "B", "C", "D"];
+    const letters = ["A", "B", "C", "D", "E", "F", "G", "H"];
     // Xáo trộn Fisher-Yates
     for (let i = teams.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

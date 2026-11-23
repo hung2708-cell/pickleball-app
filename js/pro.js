@@ -315,6 +315,7 @@ PB.pro = {
     const remain = Math.max(0, maxSlots - d.teams.length);
 
     const defaultCat = d.settings.category === "team" ? "Đồng đội" : "Đánh Đôi";
+    const isTeam = defaultCat === "Đồng đội";
     PB.app.openInfoModal(
       "Đăng ký thi đấu",
       `
@@ -336,7 +337,7 @@ PB.pro = {
           </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group ${isTeam ? "hidden" : ""}" id="regGenderGroup">
           <label>Giới tính *</label>
           <input type="hidden" id="regGender" value="Nam Nữ" />
           <div class="sc-cat-grid" id="regGenderGrid" style="grid-template-columns:repeat(3,1fr);">
@@ -357,12 +358,12 @@ PB.pro = {
         </div>
 
         <div class="form-group">
-          <label>Tên VĐV / Cặp đấu / Đội *</label>
-          <input type="text" id="regName" class="input" placeholder="VD: Hùng / Dương hoặc CLB Bính Dần" />
+          <label id="regNameLabel">${isTeam ? "Tên Đội / CLB *" : "Tên VĐV / Cặp đấu *"}</label>
+          <input type="text" id="regName" class="input" placeholder="${isTeam ? "VD: CLB Bính Dần A" : "VD: Hùng / Dương"}" />
         </div>
         <div class="form-grid" style="gap:8px;">
           <div class="form-group">
-            <label>Số điện thoại / Zalo *</label>
+            <label id="regPhoneLabel">${isTeam ? "SĐT Đội trưởng / Đại diện *" : "Số điện thoại / Zalo *"}</label>
             <input type="tel" id="regPhone" class="input" placeholder="09xx..." />
           </div>
           <div class="form-group">
@@ -371,9 +372,40 @@ PB.pro = {
           </div>
         </div>
 
+        <div id="regTeamRosterGroup" class="form-group ${isTeam ? "" : "hidden"}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <label style="margin:0;">Danh sách thành viên đội (Nam / Nữ) *</label>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="PB.pro.addRegRosterRow('M')">+ Thêm VĐV</button>
+          </div>
+          <div id="regRosterList" style="display:flex;flex-direction:column;gap:6px;">
+            ${["M", "M", "F", "F"].map((g, idx) => PB.pro._regRosterRowHtml(g, idx + 1)).join("")}
+          </div>
+          <div class="muted" style="font-size:0.74rem;margin-top:5px;">Nhập đầy đủ các VĐV Nam & Nữ (có thể thêm VĐV dự bị). Khi BTC duyệt, danh sách này tự động nạp sẵn cho Trọng tài.</div>
+        </div>
+
         <button class="btn ios27-btn-primary mt-12" onclick="PB.pro.submitRegistration()">Xác nhận đăng ký & Lấy mã VietQR</button>
       `
     );
+  },
+
+  _regRosterRowHtml(defaultGender = "M", idx = "") {
+    return `
+      <div class="reg-roster-row" style="display:flex;gap:6px;align-items:center;">
+        <input type="text" class="input-sm reg-roster-name" style="flex:1;min-width:0;" placeholder="Tên VĐV ${idx ? "#" + idx : ""}..." />
+        <select class="input-sm reg-roster-gender" style="width:82px;flex-shrink:0;">
+          <option value="M" ${defaultGender === "M" ? "selected" : ""}>Nam</option>
+          <option value="F" ${defaultGender === "F" ? "selected" : ""}>Nữ</option>
+        </select>
+        <button type="button" class="btn btn-sm btn-danger" style="padding:6px 9px;flex-shrink:0;" onclick="this.closest('.reg-roster-row').remove()" title="Xóa dòng">✕</button>
+      </div>
+    `;
+  },
+
+  addRegRosterRow(defaultGender = "M") {
+    const list = document.getElementById("regRosterList");
+    if (!list) return;
+    const idx = list.querySelectorAll(".reg-roster-row").length + 1;
+    list.insertAdjacentHTML("beforeend", this._regRosterRowHtml(defaultGender, idx));
   },
 
   selectRegPill(inputId, gridId, btn, val) {
@@ -381,6 +413,18 @@ PB.pro = {
     if (inp) inp.value = val;
     document.querySelectorAll(`#${gridId} .sc-cat-pill`).forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
+
+    if (inputId === "regCategory") {
+      const isTeam = val === "Đồng đội";
+      document.getElementById("regGenderGroup")?.classList.toggle("hidden", isTeam);
+      document.getElementById("regTeamRosterGroup")?.classList.toggle("hidden", !isTeam);
+      const nameLbl = document.getElementById("regNameLabel");
+      const nameInp = document.getElementById("regName");
+      const phoneLbl = document.getElementById("regPhoneLabel");
+      if (nameLbl) nameLbl.textContent = isTeam ? "Tên Đội / CLB *" : "Tên VĐV / Cặp đấu *";
+      if (nameInp) nameInp.placeholder = isTeam ? "VD: CLB Bính Dần A" : "VD: Hùng / Dương";
+      if (phoneLbl) phoneLbl.textContent = isTeam ? "SĐT Đội trưởng / Đại diện *" : "Số điện thoại / Zalo *";
+    }
   },
 
   submitRegistration() {
@@ -389,13 +433,26 @@ PB.pro = {
     const phone = (document.getElementById("regPhone")?.value || "").trim();
     const club = (document.getElementById("regClub")?.value || "").trim();
     const category = (document.getElementById("regCategory")?.value || "Đánh Đôi").trim();
-    const gender = (document.getElementById("regGender")?.value || "Nam Nữ").trim();
+    const isTeam = category === "Đồng đội";
+    const gender = isTeam ? "Đồng đội" : (document.getElementById("regGender")?.value || "Nam Nữ").trim();
     const rating = (document.getElementById("regRating")?.value || "Trình B").trim();
     if (!name || !phone) return PB.ui.alert("Vui lòng nhập đầy đủ Tên và Số điện thoại.");
 
+    let roster = [];
+    if (isTeam) {
+      document.querySelectorAll("#regRosterList .reg-roster-row").forEach((row) => {
+        const pName = (row.querySelector(".reg-roster-name")?.value || "").trim();
+        const pGender = row.querySelector(".reg-roster-gender")?.value || "M";
+        if (pName) roster.push({ name: pName, gender: pGender });
+      });
+      if (roster.length < 2) {
+        return PB.ui.alert("Đăng ký Đồng đội cần nhập ít nhất 2 thành viên VĐV trong đội.");
+      }
+    }
+
     const reg = {
       id: "REG_" + Date.now(),
-      name, phone, club, category, gender, rating,
+      name, phone, club, category, gender, rating, roster,
       status: "pending",
       createdAt: new Date().toLocaleString("vi-VN")
     };
@@ -453,7 +510,7 @@ PB.pro = {
       rating: reg.rating,
       group: "A",
       seed: 0,
-      roster: []
+      roster: Array.isArray(reg.roster) ? reg.roster : []
     });
     PB.state.save();
     PB.app.toast(`Đã duyệt ${reg.name} vào danh sách thi đấu!`);
@@ -740,8 +797,13 @@ PB.pro = {
                         ${r.rating ? `<span class="badge-rating">${PB.app.escape(r.rating)}</span>` : ""}
                       </div>
                       <div class="muted" style="font-size:0.78rem;margin-top:2px;">
-                        📞 ${PB.app.escape(r.phone)} • ${PB.app.escape(r.category || "Đánh Đôi")} (${PB.app.escape(r.gender)}) • CLB: ${PB.app.escape(r.club || "-")}
+                        📞 ${PB.app.escape(r.phone)} • ${PB.app.escape(r.category || "Đánh Đôi")}${r.category !== "Đồng đội" ? ` (${PB.app.escape(r.gender)})` : ""} • CLB: ${PB.app.escape(r.club || "-")}
                       </div>
+                      ${Array.isArray(r.roster) && r.roster.length ? `
+                        <div class="muted" style="font-size:0.74rem;margin-top:3px;color:var(--text-2);">
+                          👥 <strong>${r.roster.length} VĐV:</strong> ${r.roster.map((p) => `${PB.app.escape(p.name)}(${p.gender === "M" ? "Nam" : "Nữ"})`).join(", ")}
+                        </div>
+                      ` : ""}
                     </div>
                   </div>
                   <div style="display:flex;gap:6px;flex-wrap:wrap;">

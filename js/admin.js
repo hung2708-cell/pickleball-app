@@ -69,7 +69,16 @@ PB.admin = {
           </div>
           <div class="form-group" style="margin-bottom:0;">
             <label>Trình (Rating)</label>
-            <input type="text" id="addTeamRating" class="input" placeholder="VD: 3.2" />
+            <select id="addTeamRating" class="input">
+              <option value="2.5">2.5 (Cơ bản)</option>
+              <option value="2.8">2.8 (Khá cơ bản)</option>
+              <option value="3.0" selected>3.0 (Trung bình)</option>
+              <option value="3.2">3.2 (Trung bình khá)</option>
+              <option value="3.5">3.5 (Khá)</option>
+              <option value="3.8">3.8 (Khá giỏi)</option>
+              <option value="4.0">4.0 (Giỏi)</option>
+              <option value="4.5+">4.5+ (Open)</option>
+            </select>
           </div>
           <div class="form-group" style="margin-bottom:0;">
             <label>Xếp vào Bảng</label>
@@ -82,6 +91,20 @@ PB.admin = {
           </div>
         </div>
         <button class="btn btn-primary" onclick="PB.admin.addSingleTeam()">+ Thêm vào danh sách</button>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;" />
+
+        <div class="form-group">
+          <label>Import danh sách VĐV có sẵn từ Excel (.xlsx / .csv):</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <a href="mau-danh-sach-vdv.xlsx" download="mau-danh-sach-vdv.xlsx" class="btn btn-sm btn-secondary" style="text-decoration:none;">⬇ Tải file mẫu Excel (.xlsx)</a>
+            <label class="btn btn-sm btn-success" style="margin:0;cursor:pointer;">
+              <span>⬆ Import file Excel / CSV</span>
+              <input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="PB.admin.importExcelFile(this)" />
+            </label>
+            <span class="muted" style="font-size:0.76rem;">File mẫu đã có sẵn menu chọn Giới tính, Trình & Bảng</span>
+          </div>
+        </div>
 
         <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;" />
 
@@ -345,6 +368,65 @@ PB.admin = {
     });
     PB.state.save();
     PB.app.toast(`Đã thêm ${name} vào Bảng ${group}!`);
+  },
+
+  async importExcelFile(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    if (typeof XLSX === "undefined") {
+      return PB.ui.alert("Chưa tải được thư viện đọc Excel. Vui lòng kiểm tra kết nối mạng và thử lại.");
+    }
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+      if (!rows || rows.length < 2) {
+        return PB.ui.alert("File không có dữ liệu VĐV nào (cần ít nhất 1 dòng dữ liệu dưới dòng tiêu đề).");
+      }
+
+      let added = 0;
+      const parseRoster = (str) => String(str || "").split(",").map((s) => s.trim()).filter(Boolean).map((s) => {
+        const isF = /nữ|nu|\(f\)/i.test(s);
+        return { name: s.replace(/\(.*?\)/g, "").trim(), gender: isF ? "F" : "M" };
+      });
+
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || !r.length) continue;
+        // Hỗ trợ cả file mẫu có cột STT ở cột 0 hoặc file không có cột STT
+        const hasStt = !isNaN(Number(r[0])) && String(r[1] || "").trim().length > 0;
+        const offset = hasStt ? 1 : 0;
+        const name = String(r[offset] || "").trim();
+        if (!name) continue;
+        const club = String(r[offset + 1] || "").trim();
+        const gender = String(r[offset + 2] || "Nam Nữ").trim();
+        const rating = String(r[offset + 3] || "3.0").trim();
+        const rawGroup = String(r[offset + 4] || "A").trim().toUpperCase().replace(/^BẢNG\s*/i, "");
+        const group = ["A", "B", "C", "D"].includes(rawGroup) ? rawGroup : "A";
+        const rosterStr = String(r[offset + 5] || "").trim();
+
+        PB.state.data.teams.push({
+          id: "T" + Date.now() + "_" + i + "_" + Math.floor(Math.random() * 999),
+          name,
+          club,
+          gender,
+          rating,
+          group,
+          seed: 0,
+          roster: rosterStr ? parseRoster(rosterStr) : []
+        });
+        added++;
+      }
+
+      input.value = "";
+      if (!added) return PB.ui.alert("Không tìm thấy dòng VĐV hợp lệ nào trong file.");
+      PB.state.save();
+      PB.app.toast(`Đã import thành công ${added} đội/VĐV từ file Excel!`);
+    } catch (err) {
+      input.value = "";
+      PB.ui.alert("Lỗi đọc file Excel/CSV. Vui lòng dùng đúng file mẫu .xlsx.");
+    }
   },
 
   addBulkTeams() {

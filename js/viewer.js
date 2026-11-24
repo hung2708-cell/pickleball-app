@@ -13,6 +13,128 @@ PB.viewer = {
   activeTvMatchId: null,
   expandedLiveCards: {},
   highlightedTeamId: null,
+  bzScale: 1,
+  bzX: 0,
+  bzY: 0,
+  bzTop2Only: false,
+  bzExpanded: false,
+
+  _applyBzTransform() {
+    const canvas = document.getElementById("bzCanvas");
+    if (canvas) {
+      canvas.style.transform = `translate(${this.bzX}px, ${this.bzY}px) scale(${this.bzScale})`;
+    }
+    const pct = document.getElementById("bzPctLabel");
+    if (pct) pct.textContent = `${Math.round(this.bzScale * 100)}%`;
+    const slider = document.getElementById("bzZoomSlider");
+    if (slider) slider.value = String(Math.round(this.bzScale * 100));
+  },
+
+  setBzZoom(pctVal) {
+    this.bzScale = Math.max(0.3, Math.min(1.8, Number(pctVal) / 100));
+    this._applyBzTransform();
+  },
+
+  stepBzZoom(deltaPct) {
+    this.setBzZoom(Math.round(this.bzScale * 100) + deltaPct);
+  },
+
+  fitBzToScreen() {
+    const vp = document.getElementById("bzViewport");
+    const canvas = document.getElementById("bzCanvas");
+    if (!vp || !canvas) return;
+    const vw = vp.clientWidth;
+    const cw = canvas.scrollWidth || canvas.offsetWidth;
+    if (vw > 0 && cw > 0) {
+      const fit = Math.max(0.32, Math.min(1.0, (vw - 12) / cw));
+      this.bzScale = fit;
+      this.bzX = Math.max(0, (vw - cw * fit) / 2);
+      this.bzY = 8;
+      this._applyBzTransform();
+    }
+  },
+
+  resetBzZoom() {
+    this.bzScale = 1;
+    this.bzX = 0;
+    this.bzY = 0;
+    this._applyBzTransform();
+  },
+
+  toggleBzTop2() {
+    this.bzTop2Only = !this.bzTop2Only;
+    this.renderStandings();
+  },
+
+  toggleBzExpand() {
+    this.bzExpanded = !this.bzExpanded;
+    const vp = document.getElementById("bzViewport");
+    const closeBtn = document.getElementById("bzExpandCloseBtn");
+    if (vp) vp.classList.toggle("is-expanded", this.bzExpanded);
+    if (closeBtn) closeBtn.classList.toggle("hidden", !this.bzExpanded);
+    setTimeout(() => this.fitBzToScreen(), 60);
+  },
+
+  initBzGestures() {
+    const vp = document.getElementById("bzViewport");
+    if (!vp || vp.dataset.bzBound) return;
+    vp.dataset.bzBound = "1";
+
+    let dragging = false, startX = 0, startY = 0, origX = 0, origY = 0;
+    let pinchDist = 0, pinchScale = 1;
+
+    vp.addEventListener("mousedown", (e) => {
+      if (e.target.closest(".bt-clickable, button")) return;
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      origX = this.bzX; origY = this.bzY;
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      this.bzX = origX + (e.clientX - startX);
+      this.bzY = origY + (e.clientY - startY);
+      this._applyBzTransform();
+    });
+    window.addEventListener("mouseup", () => { dragging = false; });
+
+    vp.addEventListener("wheel", (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        this.stepBzZoom(e.deltaY < 0 ? 10 : -10);
+      }
+    }, { passive: false });
+
+    vp.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        dragging = true;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        origX = this.bzX; origY = this.bzY;
+      } else if (e.touches.length === 2) {
+        dragging = false;
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchDist = Math.hypot(dx, dy);
+        pinchScale = this.bzScale;
+      }
+    }, { passive: true });
+
+    vp.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 1 && dragging) {
+        this.bzX = origX + (e.touches[0].clientX - startX);
+        this.bzY = origY + (e.touches[0].clientY - startY);
+        this._applyBzTransform();
+      } else if (e.touches.length === 2 && pinchDist > 0) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const curDist = Math.hypot(dx, dy);
+        this.bzScale = Math.max(0.3, Math.min(1.8, pinchScale * (curDist / pinchDist)));
+        this._applyBzTransform();
+      }
+    }, { passive: false });
+
+    vp.addEventListener("touchend", () => { dragging = false; pinchDist = 0; });
+  },
 
   toggleHighlightTeam(teamId) {
     if (!teamId) return;
@@ -344,7 +466,7 @@ PB.viewer = {
       bracketEl.innerHTML = `<div class="card muted text-center">Chưa có sơ đồ nhánh đấu. Hãy tạo lịch vòng bảng trong mục Quản lý.</div>`;
     } else {
       const stages = ["serieA", "serieB", "knockout"].filter((st) => koMatches.some((m) => m.stage === st));
-      bracketEl.innerHTML = stages.map((st) => {
+      const stagesHtml = stages.map((st) => {
         const list = koMatches.filter((m) => m.stage === st);
         const title = st === "serieA" ? "Nhánh Serie A (Nhất & Nhì bảng)" : st === "serieB" ? "Nhánh Serie B (Ba & Tư bảng)" : "Vòng loại trực tiếp";
         const badgeCls = st === "serieA" ? "badge-serieA" : st === "serieB" ? "badge-serieB" : "badge-done";
@@ -378,22 +500,24 @@ PB.viewer = {
                             <span><strong>Bảng ${PB.app.escape(g)}</strong></span>
                             <strong>${gStatus}</strong>
                           </div>
-                          ${rows.map((r, rIdx) => {
+                          <div class="bt-group-slots">
+                          ${rows.filter((_, idx) => !this.bzTop2Only || idx < 2).map((r, rIdx) => {
                             const rank = rIdx + 1;
-                            const isAdv = (st === "serieB") ? (rank === 3 || rank === 4) : (rank === 1 || rank === 2);
-                            const rankTag = rank === 1 ? `Nhất ${g}` : rank === 2 ? `Nhì ${g}` : rank === 3 ? `Ba ${g}` : rank === 4 ? `Tư ${g}` : `#${rank}`;
+                            const seedCls = rank === 1 ? "seed-1" : rank === 2 ? "seed-2" : "";
+                            const rankTag = `${rank}${g}`;
                             const ptsTxt = PB.state.data.settings.category === "team"
                               ? `${r.tablePts}đ (${r.ptsFor}đ)`
                               : `${r.wins}T (${r.ptsFor}đ)`;
                             const isHl = this.highlightedTeamId && this.highlightedTeamId === r.teamId;
                             return `
-                              <div class="bt-slot bt-clickable ${isAdv ? "winner" : ""} ${isHl ? "team-hl" : ""}" onclick="PB.viewer.toggleHighlightTeam('${r.teamId}')">
+                              <div class="bt-slot bt-clickable ${seedCls} ${isHl ? "team-hl" : ""}" onclick="PB.viewer.toggleHighlightTeam('${r.teamId}')">
                                 <span class="bt-seed-tag">${rankTag}</span>
                                 <span class="bt-slot-name">${PB.app.escape(r.name)}</span>
                                 <span class="bt-slot-score">${ptsTxt}</span>
                               </div>
                             `;
                           }).join("")}
+                          </div>
                         </div>
                       `;
                     }).join("")}
@@ -412,20 +536,22 @@ PB.viewer = {
                         const nameB = m.teamB ? PB.state.getTeamName(m.teamB) : "Chờ xác định";
                         const statusTxt = m.status === "live" ? "Đang đánh" : m.status === "finished" ? "Xong" : (m.court ? `Sân ${m.court}` : "Chờ");
                         return `
-                          <div class="bt-node ${m.status === "live" ? "is-live" : ""} ${hasNextCol ? "has-next" : ""}">
+                          <div class="bt-node bt-ko-node ${!hasNextCol ? "is-final" : ""} ${m.status === "live" ? "is-live" : ""} ${hasNextCol ? "has-next" : ""}">
                             <div class="bt-node-meta">
                               <span>${PB.app.escape(m.roundName)}</span>
                               <strong>${statusTxt}</strong>
                             </div>
-                            <div class="bt-slot ${m.teamA ? "bt-clickable" : ""} ${m.winner === "A" ? "winner" : ""} ${this.highlightedTeamId && m.teamA === this.highlightedTeamId ? "team-hl" : ""}" ${m.teamA ? `onclick="PB.viewer.toggleHighlightTeam('${m.teamA}')"` : ""}>
-                              ${m.labelA ? `<span class="bt-seed-tag">${PB.app.escape(m.labelA)}</span>` : ""}
-                              <span class="bt-slot-name">${PB.app.escape(nameA)}</span>
-                              <span class="bt-slot-score">${m.status === "pending" ? "-" : m.scoreA}</span>
-                            </div>
-                            <div class="bt-slot ${m.teamB ? "bt-clickable" : ""} ${m.winner === "B" ? "winner" : ""} ${this.highlightedTeamId && m.teamB === this.highlightedTeamId ? "team-hl" : ""}" ${m.teamB ? `onclick="PB.viewer.toggleHighlightTeam('${m.teamB}')"` : ""}>
-                              ${m.labelB ? `<span class="bt-seed-tag">${PB.app.escape(m.labelB)}</span>` : ""}
-                              <span class="bt-slot-name">${PB.app.escape(nameB)}</span>
-                              <span class="bt-slot-score">${m.status === "pending" ? "-" : m.scoreB}</span>
+                            <div class="bt-ko-slots">
+                              <div class="bt-slot ${m.teamA ? "bt-clickable" : ""} ${m.winner === "A" ? "winner" : ""} ${this.highlightedTeamId && m.teamA === this.highlightedTeamId ? "team-hl" : ""}" ${m.teamA ? `onclick="PB.viewer.toggleHighlightTeam('${m.teamA}')"` : ""}>
+                                ${m.labelA ? `<span class="bt-seed-tag">${PB.app.escape(m.labelA)}</span>` : ""}
+                                <span class="bt-slot-name">${PB.app.escape(nameA)}</span>
+                                <span class="bt-slot-score">${m.status === "pending" ? "-" : m.scoreA}</span>
+                              </div>
+                              <div class="bt-slot ${m.teamB ? "bt-clickable" : ""} ${m.winner === "B" ? "winner" : ""} ${this.highlightedTeamId && m.teamB === this.highlightedTeamId ? "team-hl" : ""}" ${m.teamB ? `onclick="PB.viewer.toggleHighlightTeam('${m.teamB}')"` : ""}>
+                                ${m.labelB ? `<span class="bt-seed-tag">${PB.app.escape(m.labelB)}</span>` : ""}
+                                <span class="bt-slot-name">${PB.app.escape(nameB)}</span>
+                                <span class="bt-slot-score">${m.status === "pending" ? "-" : m.scoreB}</span>
+                              </div>
                             </div>
                           </div>
                         `;
@@ -438,6 +564,32 @@ PB.viewer = {
           </div>
         `;
       }).join("");
+
+      bracketEl.innerHTML = `
+        <div class="bz-toolbar">
+          <div class="bz-zoom-group">
+            <button class="bz-btn" onclick="PB.viewer.stepBzZoom(-15)">−</button>
+            <input type="range" id="bzZoomSlider" class="bz-slider" min="30" max="180" value="${Math.round(this.bzScale * 100)}" oninput="PB.viewer.setBzZoom(this.value)" />
+            <span id="bzPctLabel" class="bz-pct">${Math.round(this.bzScale * 100)}%</span>
+            <button class="bz-btn" onclick="PB.viewer.stepBzZoom(15)">+</button>
+          </div>
+          <button class="bz-btn is-primary" onclick="PB.viewer.fitBzToScreen()">Vừa khung</button>
+          <button class="bz-btn" onclick="PB.viewer.resetBzZoom()">100%</button>
+          <button class="bz-btn ${this.bzTop2Only ? "is-active" : ""}" onclick="PB.viewer.toggleBzTop2()">Chỉ Top 2</button>
+          <button class="bz-btn" onclick="PB.viewer.toggleBzExpand()">⛶ Mở rộng khung</button>
+        </div>
+        <div class="bz-legend">
+          <span><i class="bz-dot" style="background:#ea580c;"></i>Nhất bảng (1A, 1B)</span>
+          <span><i class="bz-dot" style="background:#10b981;"></i>Nhì bảng (2A, 2B)</span>
+          <span class="muted">Chạm vào 1A, 2B... để sáng đường nhánh • Chụm 2 ngón để Zoom</span>
+        </div>
+        <button id="bzExpandCloseBtn" class="bz-expand-close ${this.bzExpanded ? "" : "hidden"}" onclick="PB.viewer.toggleBzExpand()">✕ Thu gọn</button>
+        <div id="bzViewport" class="bz-viewport ${this.bzExpanded ? "is-expanded" : ""}">
+          <div id="bzCanvas" class="bz-canvas">${stagesHtml}</div>
+        </div>
+      `;
+      this.initBzGestures();
+      this._applyBzTransform();
     }
   },
 

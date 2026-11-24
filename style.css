@@ -2526,3 +2526,153 @@ body.ref-scoring-mode, body.ref-lineup-mode {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* =========================================================
+   v45: SPORTCONNECT FLAT PRO UI (BỎ KÍNH LỎNG iOS)
+   - Logo & Header sắc nét chuẩn SportConnect
+   - Tab gạch chân (Desktop) & Bottom Bar phẳng (Mobile)
+   - Modal/Popup phẳng nền đặc tối, không hiệu ứng kính lỏng iOS
+   ========================================================= */
+
+/* 1. LOGO & HEADER CHUẨN SPORTCONNECT */
+.topbar {
+  background: #120f0d !important;
+  border-bottom: 1px solid #2e2622 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.brand-logo {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 10px !important;
+  border: 1.5px solid #f97316 !important;
+  box-shadow: none !important;
+  background: #1c1714 !important;
+}
+.brand-info h1 {
+  font-weight: 800 !important;
+  letter-spacing: -0.015em !important;
+}
+.chip {
+  border-radius: 6px !important;
+  font-weight: 700 !important;
+}
+
+/* 2. CÁC TAB ĐIỀU HƯỚNG CHUẨN SPORTCONNECT (DESKTOP) */
+.main-nav {
+  background: #161210 !important;
+  border-bottom: 1px solid #2e2622 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.main-nav-inner {
+  padding: 0 16px !important;
+  gap: 4px !important;
+}
+.nav-slider-pill {
+  display: none !important;
+}
+.nav-btn {
+  position: relative;
+  border-radius: 0 !important;
+  padding: 13px 18px !important;
+  background: transparent !important;
+  color: #a8a29e !important;
+  font-weight: 700 !important;
+  border-bottom: 2.5px solid transparent !important;
+  box-shadow: none !important;
+}
+.nav-btn:hover {
+  background: rgba(249, 115, 22, 0.06) !important;
+  color: #fafaf9 !important;
+}
+.nav-btn.active {
+  background: transparent !important;
+  color: #f97316 !important;
+  border-bottom: 2.5px solid #f97316 !important;
+}
+
+/* 3. SUBTABS CHUẨN SPORTCONNECT */
+.subtabs {
+  background: #161210 !important;
+  border: 1px solid #2e2622 !important;
+  border-radius: 10px !important;
+  padding: 4px !important;
+}
+.subtab-btn {
+  border-radius: 7px !important;
+  font-weight: 700 !important;
+  transition: background 0.15s, color 0.15s !important;
+}
+.subtab-btn.active {
+  background: #f97316 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* 4. BỎ HOÀN TOÀN KÍNH LỎNG iOS TRÊN MỌI MODAL / POPUP */
+.modal-ios27 .modal-backdrop {
+  background: rgba(0, 0, 0, 0.72) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.ios27-sheet {
+  background: #161210 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #332a25 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65) !important;
+  animation: fadeIn 0.16s ease !important;
+  padding-bottom: 12px !important;
+}
+.ios27-grabber {
+  display: none !important;
+}
+.ios27-modal-head {
+  padding: 14px 18px 10px !important;
+  border-bottom: 1px solid #2e2622 !important;
+}
+.ios27-auth-head {
+  padding: 18px 18px 8px !important;
+}
+.ios27-lock-ring {
+  border-radius: 12px !important;
+  width: 48px !important;
+  height: 48px !important;
+  box-shadow: none !important;
+}
+.ios27-segment {
+  border-radius: 10px !important;
+  background: #1f1916 !important;
+  border: 1px solid #2e2622;
+}
+.ios27-seg-btn {
+  border-radius: 8px !important;
+}
+.ios27-seg-btn.active {
+  background: #f97316 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+.ios27-pass-input {
+  border-radius: 10px !important;
+}
+.ios27-btn-primary {
+  border-radius: 10px !important;
+  background: #ea580c !important;
+  box-shadow: none !important;
+}
+.ios27-btn-primary:hover {
+  background: #f97316 !important;
+}
+.ios27-btn-cancel {
+  border-radius: 10px !important;
+  background: #241e1b !important;
+  border: 1px solid #3a302a !important;
+}
+.ios27-picker-item {
+  border-radius: 10px !important;
+  padding: 11px 13px !important;
+}
+.ios27-close-circle {
+  border-radius: 8px !important;
+}
